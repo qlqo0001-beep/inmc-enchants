@@ -30,6 +30,7 @@ enum class ItemKind(val id: String, val label: String) {
     FISHTRAK("fishtrak", "낚시 추적기"),
     SOUL_TRACKER("soul-tracker", "영혼 추적기"),
     SOUL_GEM("soul-gem", "영혼석"),
+    LEVEL_SCROLL("level-scroll", "강화 스크롤"),
     ;
 
     companion object {
@@ -103,11 +104,17 @@ class EnchantItems(private val e: Enchants) {
     @Volatile
     private var bookAppearances: Map<String, Appearance> = emptyMap()
 
+    /** 강화 스크롤의 인첸트 id → 겉모습. 커스텀아이템에서 인첸트마다 다른 스크롤 아이템을 만들 수 있다. */
+    @Volatile
+    private var scrollAppearances: Map<String, Appearance> = emptyMap()
+
     /** 커스텀아이템의 역할에서 겉모습을 다시 읽는다. 역할이 바뀔 때마다(core `ItemRoles.listen`). */
     fun refreshAppearances() {
         fun look(holder: kr.inmc.core.integration.ItemRoles.Holder) = Appearance(holder.material, holder.itemModel, holder.modelData)
-        appearances = kr.inmc.core.integration.ItemRoles.holders(EnchantRoles.ITEM)
-            .mapNotNull { holder -> ItemKind.byId(holder.values["kind"])?.let { it to look(holder) } }.toMap()
+        val holders = kr.inmc.core.integration.ItemRoles.holders(EnchantRoles.ITEM)
+        appearances = holders.mapNotNull { holder -> ItemKind.byId(holder.values["kind"])?.let { it to look(holder) } }.toMap()
+        scrollAppearances = holders.filter { it.values["kind"] == ItemKind.LEVEL_SCROLL.id }
+            .mapNotNull { holder -> holder.values["enchant"]?.takeIf { it.isNotBlank() }?.let { it.lowercase() to look(holder) } }.toMap()
         bookAppearances = kr.inmc.core.integration.ItemRoles.holders(EnchantRoles.BOOK)
             .associate { holder -> holder.values["group"].orEmpty() to look(holder) }
     }
@@ -118,9 +125,14 @@ class EnchantItems(private val e: Enchants) {
     }
 
     fun load(section: ConfigurationSection?) {
+        // 서버의 items.yml 은 처음 한 번만 깔린다. 뒤에 생긴 종류(강화 스크롤)는 파일에 없으니 배포본의 모양으로.
+        val bundled = e.plugin.getResource("items.yml")?.use {
+            org.bukkit.configuration.file.YamlConfiguration.loadConfiguration(java.io.InputStreamReader(it, Charsets.UTF_8))
+        }?.getConfigurationSection("items")
         looks = ItemKind.entries.filter { it != ItemKind.BOOK }.associateWith { kind ->
             val fallback = ItemLook(Material.PAPER, kind.label, emptyList())
-            section?.getConfigurationSection(kind.id)?.let { ItemLook.load(it, fallback) } ?: fallback
+            val node = section?.getConfigurationSection(kind.id) ?: bundled?.getConfigurationSection(kind.id)
+            node?.let { ItemLook.load(it, fallback) } ?: fallback
         }
     }
 
@@ -276,6 +288,35 @@ class EnchantItems(private val e: Enchants) {
         it.set(Keys.UNIQUE, PersistentDataType.STRING, java.util.UUID.randomUUID().toString())
     }
 
+    /**
+     * 강화 스크롤 — [target] 을 한 레벨 올린다(없으면 1레벨로 붙인다). 실패하면 [downgrade]% 로 한 레벨 내려간다.
+     * 같은 인첸트·같은 확률끼리는 겹친다(상점에서 여러 장 판다).
+     */
+    fun levelScroll(target: ScrollEnchant, success: Int, downgrade: Int, amount: Int = 1): ItemStack = make(
+        ItemKind.LEVEL_SCROLL, amount = amount, value = success.coerceIn(0, 100),
+        appearance = scrollAppearances[target.id] ?: appearances[ItemKind.LEVEL_SCROLL],
+        extra = mapOf(
+            "{enchant}" to e.scrolls.label(target),
+            "{success}" to success.coerceIn(0, 100).toString(),
+            "{downgrade}" to downgrade.coerceIn(0, 100).toString(),
+            "{max-level}" to e.scrolls.maxLevel(target).toString(),
+        ),
+    ) {
+        it.set(Keys.SCROLL_ENCHANT, PersistentDataType.STRING, target.id)
+        it.set(Keys.AMOUNT, PersistentDataType.INTEGER, success.coerceIn(0, 100))
+        it.set(Keys.SCROLL_DOWNGRADE, PersistentDataType.INTEGER, downgrade.coerceIn(0, 100))
+    }
+
+    data class ScrollInfo(val target: ScrollEnchant, val success: Int, val downgrade: Int)
+
+    /** 강화 스크롤의 값. 강화 스크롤이 아니거나 그 인첸트가 지워졌으면 null. */
+    fun scrollInfo(stack: ItemStack?): ScrollInfo? {
+        if (kindOf(stack) != ItemKind.LEVEL_SCROLL) return null
+        val pdc = stack!!.itemMeta.persistentDataContainer
+        val target = e.scrolls.resolve(pdc.get(Keys.SCROLL_ENCHANT, PersistentDataType.STRING)) ?: return null
+        return ScrollInfo(target, pdc.get(Keys.AMOUNT, PersistentDataType.INTEGER) ?: 0, pdc.get(Keys.SCROLL_DOWNGRADE, PersistentDataType.INTEGER) ?: 0)
+    }
+
     /** 아이템에 적힌 값(가루 성공률·확장기 칸·스크롤 성공률·영혼석 영혼). */
     fun amount(stack: ItemStack?): Int = EnchantStorage.int(stack, Keys.AMOUNT)
 
@@ -295,6 +336,7 @@ class EnchantItems(private val e: Enchants) {
         amount: Int = 1,
         value: Int? = null,
         extra: Map<String, String> = emptyMap(),
+        appearance: Appearance? = appearances[kind],
         tag: (org.bukkit.persistence.PersistentDataContainer) -> Unit = {},
     ): ItemStack {
         val look = looks[kind] ?: ItemLook(Material.PAPER, kind.label, emptyList())
@@ -305,7 +347,6 @@ class EnchantItems(private val e: Enchants) {
             put("{slots}", value?.toString() ?: "")
             putAll(extra)
         }
-        val appearance = appearances[kind]
         val stack = decorate(
             ItemStack(appearance?.material ?: look.material, amount.coerceIn(1, 64)),
             fill(look.name, placeholders), look.lore.map { fill(it, placeholders) },

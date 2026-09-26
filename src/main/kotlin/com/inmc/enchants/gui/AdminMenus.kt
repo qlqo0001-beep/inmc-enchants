@@ -55,6 +55,9 @@ class AdminMenu(e: Enchants, viewer: Player) : Menu(e, viewer, 54, "<dark_red>�
         // 세트는 커스텀아이템으로 옮겼다(사용자 결정 2026-09-25). 찾는 관리자에게 어디로 갔는지만 알린다.
         set(25, Icon.of(Material.DIAMOND_CHESTPLATE, "<gray>세트·무기", "<gray>커스텀아이템으로 옮겼습니다.",
             "<gray>/커스텀아이템 관리 → 아이템 세트 → 몇 벌 효과", "<gray>→ <light_purple>인첸트 효과</light_purple> 에서 고칩니다."))
+        set(26, Icon.of(Material.PAPER, "<yellow>강화 스크롤", "<gray>금지 목록(어떤 아이템에 어떤 인첸트를", "<gray>스크롤로 붙이면 안 되는지)·바닐라 최대 레벨·지급", "", "<yellow>▶ 클릭")) {
+            ScrollAdminMenu(e, viewer).show()
+        }
         if (e.registry.problems.isNotEmpty()) {
             set(31, Icon.of(Material.RED_DYE, "<red>설정 문제 " + e.registry.problems.size + "건", e.registry.problems.take(10).map { "<gray>$it" }))
         }

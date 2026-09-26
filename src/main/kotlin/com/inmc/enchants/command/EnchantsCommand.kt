@@ -33,6 +33,13 @@ class EnchantsCommand(private val e: Enchants, private val plugin: EnchantsPlugi
         builder.buildFuture()
     }
 
+    /** `해제` 는 손에 든 것에 붙은 것만. */
+    private val heldIds = SuggestionProvider<CommandSourceStack> { ctx, builder ->
+        val held = (ctx.source.sender as? Player)?.inventory?.itemInMainHand
+        EnchantStorage.read(held).keys.filter { it.startsWith(builder.remainingLowerCase) }.forEach { builder.suggest(it) }
+        builder.buildFuture()
+    }
+
     private fun tree(): LiteralArgumentBuilder<CommandSourceStack> =
         Commands.literal("인첸트")
             .requires { it.sender.hasPermission(USE) }
@@ -68,7 +75,7 @@ class EnchantsCommand(private val e: Enchants, private val plugin: EnchantsPlugi
             .then(
                 Commands.literal("해제").requires { it.sender.hasPermission(ADMIN) }
                     .then(
-                        Commands.argument("인첸트", StringArgumentType.word()).suggests(enchantIds)
+                        Commands.argument("인첸트", StringArgumentType.word()).suggests(heldIds)
                             .executes { ctx -> unenchant(ctx.source.sender, StringArgumentType.getString(ctx, "인첸트")) },
                     ),
             )
@@ -121,30 +128,19 @@ class EnchantsCommand(private val e: Enchants, private val plugin: EnchantsPlugi
         return 1
     }
 
-    /** 손에 든 것에 바로 붙인다(성공률·칸 무시). 관리자 시험용. */
+    /** 손에 든 것에 바로 붙인다(성공률·칸 무시, 진화 사슬의 아래 단계는 지운다). 관리자용 — `내 아이템` 화면과 같은 길. */
     private fun enchant(sender: CommandSender, id: String, level: Int): Int {
         val player = sender as? Player ?: return fail(sender, "player-only")
         val def = e.registry.get(id) ?: return fail(sender, "unknown-enchant", id)
-        val stack = player.inventory.itemInMainHand
-        if (stack.type.isAir) return fail(sender, "hand-empty")
-        val enchants = EnchantStorage.read(stack)
-        enchants[def.id] = level.coerceIn(1, def.maxLevel.coerceAtLeast(1))
-        EnchantStorage.write(stack, enchants)
-        e.lore.render(stack)
-        player.inventory.setItemInMainHand(stack)
-        e.statics.refresh(player)
+        if (player.inventory.itemInMainHand.type.isAir) return fail(sender, "hand-empty")
+        e.uses.adminSet(player, def, level)
         return 1
     }
 
     private fun unenchant(sender: CommandSender, id: String): Int {
         val player = sender as? Player ?: return fail(sender, "player-only")
-        val stack = player.inventory.itemInMainHand
-        val enchants = EnchantStorage.read(stack)
-        if (enchants.remove(id.lowercase()) == null) return fail(sender, "unknown-enchant", id)
-        EnchantStorage.write(stack, enchants)
-        e.lore.render(stack)
-        player.inventory.setItemInMainHand(stack)
-        e.statics.refresh(player)
+        if (player.inventory.itemInMainHand.type.isAir) return fail(sender, "hand-empty")
+        if (!e.uses.adminRemove(player, id)) return fail(sender, "enchant-not-on-item", id)
         return 1
     }
 

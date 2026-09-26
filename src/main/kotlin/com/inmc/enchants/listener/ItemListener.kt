@@ -161,7 +161,7 @@ class ItemListener(private val e: Enchants) : Listener {
 
     private fun report(player: Player, result: ItemUses.Result) {
         val ph = e.ph()
-        result.enchant?.let { ph.enchant(e.display(it, result.level)) }
+        (result.label ?: result.enchant?.let { e.display(it, result.level) })?.let { ph.enchant(it) }
         e.messages.send(player, result.outcome.message, ph)
         val sound = when {
             result.outcome == ItemUses.Outcome.DESTROYED -> Sound.ENTITY_ITEM_BREAK

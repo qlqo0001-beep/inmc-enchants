@@ -35,6 +35,9 @@ object EnchantRoles {
                     ItemRoles.Choice("orb", "오브 종류", { OrbKind.entries.map { it.id to it.label } }, OrbKind.WEAPON.id, visible = { it["kind"] == ItemKind.ORB.id }),
                     ItemRoles.Number("slots", "오브 칸 수", 1.0, 54.0, 1.0, "1", visible = { it["kind"] == ItemKind.ORB.id }),
                     ItemRoles.Number("souls", "영혼 수", 1.0, 1_000_000.0, 100.0, "100", visible = { it["kind"] == ItemKind.SOUL_GEM.id }),
+                    ItemRoles.Choice("enchant", "강화할 인첸트", { scrollChoices(e) }, visible = { it["kind"] == ItemKind.LEVEL_SCROLL.id }),
+                    ItemRoles.Number("success", "강화 성공 확률(%)", 0.0, 100.0, 5.0, "50", visible = { it["kind"] == ItemKind.LEVEL_SCROLL.id }),
+                    ItemRoles.Number("downgrade", "실패 시 하락 확률(%)", 0.0, 100.0, 5.0, "0", visible = { it["kind"] == ItemKind.LEVEL_SCROLL.id }),
                 ),
                 factory = { values, amount -> make(e, values, amount) },
             ),
@@ -70,6 +73,19 @@ object EnchantRoles {
             ItemKind.BLACK_SCROLL -> items.blackScroll(items.roll(e.config.blackScrollSuccess))
             ItemKind.ORB -> items.orb(OrbKind.byId(values["orb"]) ?: OrbKind.WEAPON, values["slots"]?.toDoubleOrNull()?.toInt()?.coerceIn(1, 54) ?: 1)
             ItemKind.SOUL_GEM -> items.soulGem(values["souls"]?.toDoubleOrNull()?.toInt()?.coerceAtLeast(1) ?: 100)
+            // 인첸트를 고르기 전에는 만들 것이 없다(목록에 한 번 올리기도 건너뛴다 — 스크롤은 관리자가 인첸트마다 만든다).
+            ItemKind.LEVEL_SCROLL -> e.scrolls.resolve(values["enchant"])?.let { target ->
+                fun percent(key: String, fallback: Int) = values[key]?.toDoubleOrNull()?.toInt()?.coerceIn(0, 100) ?: fallback
+                items.levelScroll(target, percent("success", 50), percent("downgrade", 0), amount)
+            }
+        }
+    }
+
+    /** 강화 스크롤의 인첸트 보기 — (id, 보이는 이름). 우리 인첸트 다음 바닐라. */
+    private fun scrollChoices(e: Enchants): List<Pair<String, String>> = e.scrolls.all().map { target ->
+        target.id to when (target) {
+            is ScrollEnchant.Custom -> e.lore.plainName(target.def) + " (" + target.id + ")"
+            is ScrollEnchant.Vanilla -> "바닐라 " + target.id.removePrefix("minecraft:")
         }
     }
 

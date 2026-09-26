@@ -92,6 +92,8 @@ class Enchants(override val plugin: JavaPlugin) : InmcHost {
     val souls = SoulService(this)
     val items = com.inmc.enchants.item.EnchantItems(this)
     val uses = com.inmc.enchants.item.ItemUses(this)
+    /** 강화 스크롤의 금지 목록·바닐라 최대 레벨(`scrolls.yml`). */
+    val scrolls = com.inmc.enchants.item.ScrollRules(this)
 
     val prompts = ChatPrompt(this)
 

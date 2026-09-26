@@ -8,6 +8,7 @@
 #  name / lore         MiniMessage 와 & 색코드. 쓸 수 있는 자리표시:
 #     {group} 등급 이름 · {color} 등급 색 · {amount} 수치 · {souls} 영혼 · {slots} 칸
 #     {success} 성공률 · {destroy} 파괴율 · {kind} 오브 종류
+#     {enchant} 강화 스크롤의 인첸트 · {downgrade} 하락률 · {max-level} 최대 레벨
 #
 #  부여서 자체의 모양은 config.yml 의 books 에서 정합니다(등급별로는 groups.yml).
 # ============================================================
@@ -126,3 +127,15 @@ items:
     lore:
       - "<gray>영혼 추적기가 달린 아이템에 끌어다 놓으면 영혼을 옮겨 담습니다."
       - "<gray>영혼석끼리 겹치면 합쳐집니다."
+
+  level-scroll:
+    material: PAPER
+    glow: true
+    name: "<aqua><bold>{enchant} <aqua>강화 스크롤"
+    lore:
+      - "<gray>아이템 위에 끌어다 놓으면 {enchant}<gray> 을(를) 한 레벨 올립니다."
+      - "<gray>없으면 1레벨로 붙입니다. <dark_gray>(최대 {max-level}레벨)"
+      - ""
+      - "<green>성공 확률 {success}%"
+      - "<red>실패하면 {downgrade}% 확률로 한 레벨 하락"
+      - "<gray>화이트 스크롤이 있으면 하락을 한 번 막습니다."

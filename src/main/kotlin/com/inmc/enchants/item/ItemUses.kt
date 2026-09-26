@@ -32,6 +32,8 @@ class ItemUses(private val e: Enchants) {
         val returned: ItemStack? = null,
         val enchant: EnchantDefinition? = null,
         val level: Int = 0,
+        /** 메시지의 `{enchant}`. 없으면 [enchant]·[level] 로 만든다(바닐라 인첸트는 정의가 없다). */
+        val label: String? = null,
     )
 
     enum class Outcome(val message: String, val applied: Boolean) {
@@ -63,6 +65,12 @@ class ItemUses(private val e: Enchants) {
         SOULS_MOVED("souls-moved", true),
         NO_SOUL_TRACKER("souls-no-tracker", false),
         NOT_APPLICABLE("item-not-applicable", false),
+        SCROLL_UP("scroll-up", true),
+        SCROLL_KEPT("scroll-kept", false),
+        SCROLL_DOWN("scroll-down", false),
+        SCROLL_LOST("scroll-lost", false),
+        SCROLL_PROTECTED("scroll-protected", false),
+        SCROLL_BLACKLISTED("scroll-blacklisted", false),
     }
 
     /** [tool] 을 [target] 위에 쓴다. 쓸 수 없는 짝이면 null(부르는 쪽은 평소대로 둔다). */
@@ -76,6 +84,7 @@ class ItemUses(private val e: Enchants) {
             ItemKind.BOOK -> if (targetKind == ItemKind.BOOK) combine(tool, target) else if (targetKind == null) applyBook(player, tool, target) else null
             ItemKind.MAGIC_DUST -> if (targetKind == ItemKind.BOOK) dust(tool, target) else null
             ItemKind.RANDOM_SCROLL -> if (targetKind == ItemKind.BOOK) reroll(tool, target) else null
+            ItemKind.LEVEL_SCROLL -> if (targetKind == null) levelUp(player, tool, target) else null
             ItemKind.SOUL_GEM -> when (targetKind) {
                 ItemKind.SOUL_GEM -> mergeGems(tool, target)
                 null -> soulsIntoItem(tool, target)
@@ -106,20 +115,12 @@ class ItemUses(private val e: Enchants) {
         val def = info.def
         val keep = Result(Outcome.WRONG_ITEM, target, used = false, enchant = def, level = info.level)
         if (locked(target)) return keep.copy(outcome = Outcome.LOCKED)
-        if (!Applicability.matchesAny(def.applies, target.type.name, e.config.appliesGroups)) return keep
-        // 상위 곡괭이 전용 같은 것 — 커스텀 아이템 플러그인이 알아보는 아이템에만.
-        if (def.settings.customItemsOnly && e.customItems.identify(target) == null) return keep
+        if (!fits(def, target)) return keep
         val current = EnchantStorage.read(target)
         val have = current[def.id]
         if (have != null && have >= info.level) return keep.copy(outcome = Outcome.ALREADY)
         if (have == null && !e.slots.hasRoom(target, player)) return keep.copy(outcome = Outcome.NO_SLOTS)
-        for (need in def.settings.requiredEnchants) {
-            val (id, level) = need.split(':').let { it[0] to (it.getOrNull(1)?.toIntOrNull() ?: 1) }
-            if ((current[id] ?: 0) < level) return keep.copy(outcome = Outcome.MISSING_REQUIRED)
-        }
-        if (def.settings.notApplyableWith.any { it in current } || current.keys.any { other -> e.registry.get(other)?.settings?.notApplyableWith?.contains(def.id) == true }) {
-            return keep.copy(outcome = Outcome.CONFLICT)
-        }
+        unmet(def, current)?.let { return keep.copy(outcome = it) }
 
         val result = target.clone()
         if (certain || roll(info.success)) {
@@ -137,6 +138,24 @@ class ItemUses(private val e: Enchants) {
         }
         if (!e.config.destroyItem) return Result(Outcome.FAILED, target, used = true, enchant = def, level = info.level)
         return Result(Outcome.DESTROYED, null, used = true, enchant = def, level = info.level)
+    }
+
+    /** 붙는 곳에 맞는가. 상위 곡괭이 전용 같은 것은 커스텀 아이템 플러그인이 알아보는 아이템에만. */
+    private fun fits(def: EnchantDefinition, target: ItemStack): Boolean {
+        if (!Applicability.matchesAny(def.applies, target.type.name, e.config.appliesGroups)) return false
+        return !def.settings.customItemsOnly || e.customItems.identify(target) != null
+    }
+
+    /** 필요한 인첸트(진화 사슬의 아래 단계)가 없거나 함께 붙을 수 없는 것이 있으면 그 결과. 괜찮으면 null. */
+    private fun unmet(def: EnchantDefinition, current: Map<String, Int>): Outcome? {
+        for (need in def.settings.requiredEnchants) {
+            val (id, level) = need.split(':').let { it[0] to (it.getOrNull(1)?.toIntOrNull() ?: 1) }
+            if ((current[id] ?: 0) < level) return Outcome.MISSING_REQUIRED
+        }
+        if (def.settings.notApplyableWith.any { it in current } || current.keys.any { other -> e.registry.get(other)?.settings?.notApplyableWith?.contains(def.id) == true }) {
+            return Outcome.CONFLICT
+        }
+        return null
     }
 
     /**
@@ -169,6 +188,103 @@ class ItemUses(private val e: Enchants) {
         if (group != null && !group.id.equals(info.def.group, ignoreCase = true)) return Result(Outcome.DUST_WRONG_GROUP, book, used = false)
         val (success, destroy) = e.items.rates()
         return Result(Outcome.REROLLED, e.items.book(info.def, info.level, success, destroy), used = true)
+    }
+
+    // --- 강화 스크롤 ---------------------------------------------------------------------------
+
+    /**
+     * 강화 스크롤. 판정 순서가 규칙이다 — 굴리기 전에 걸리는 것은 스크롤을 쓰지 않는다.
+     *
+     * 금지 표시 → 금지 목록(`scrolls.yml`) → 없는 인첸트면 부여서와 같은 붙이기 검사(붙는 곳·칸·필요·충돌) /
+     * 있는 인첸트면 최대 레벨 → 성공 굴림(+1, 없으면 1레벨로 붙는다) → 실패하면 하락 굴림(−1, 1레벨이면 사라진다).
+     * 하락은 화이트 스크롤이 한 번 막는다. 이미 붙은 것을 올릴 때는 필요·충돌을 다시 보지 않는다 — 붙을 때 봤고,
+     * 진화 사슬의 위 단계는 붙으면서 아래 단계를 지웠으므로 다시 보면 영영 못 올린다.
+     */
+    fun levelUp(player: Player?, scroll: ItemStack, target: ItemStack): Result {
+        val info = e.items.scrollInfo(scroll) ?: return Result(Outcome.NOT_APPLICABLE, target, used = false)
+        val enchant = info.target
+        val have = e.scrolls.level(target, enchant)
+        val keep = Result(Outcome.WRONG_ITEM, target, used = false, label = e.scrolls.label(enchant))
+        if (locked(target)) return keep.copy(outcome = Outcome.LOCKED)
+        if (e.scrolls.blocked(target, enchant)) return keep.copy(outcome = Outcome.SCROLL_BLACKLISTED)
+        if (have >= e.scrolls.maxLevel(enchant)) return keep.copy(outcome = Outcome.MAX_LEVEL)
+        if (have == 0) attachable(player, enchant, target)?.let { return keep.copy(outcome = it) }
+
+        val result = target.clone()
+        if (roll(info.success)) {
+            setLevel(result, enchant, have + 1)
+            return Result(Outcome.SCROLL_UP, result, used = true, label = e.scrolls.label(enchant, have + 1))
+        }
+        if (have == 0 || !roll(info.downgrade)) return Result(Outcome.SCROLL_KEPT, target, used = true, label = keep.label)
+        if (EnchantStorage.flag(result, Keys.WHITE_SCROLL)) {
+            EnchantStorage.setFlag(result, Keys.WHITE_SCROLL, false)
+            e.lore.render(result)
+            return Result(Outcome.SCROLL_PROTECTED, result, used = true, label = keep.label)
+        }
+        setLevel(result, enchant, have - 1)
+        return if (have - 1 > 0) Result(Outcome.SCROLL_DOWN, result, used = true, label = e.scrolls.label(enchant, have - 1))
+        else Result(Outcome.SCROLL_LOST, result, used = true, label = keep.label)
+    }
+
+    /** 없는 인첸트를 새로 붙일 수 있는가. 붙일 수 있으면 null. */
+    private fun attachable(player: Player?, enchant: ScrollEnchant, target: ItemStack): Outcome? = when (enchant) {
+        is ScrollEnchant.Custom -> when {
+            !fits(enchant.def, target) -> Outcome.WRONG_ITEM
+            !e.slots.hasRoom(target, player) -> Outcome.NO_SLOTS
+            else -> unmet(enchant.def, EnchantStorage.read(target))
+        }
+        is ScrollEnchant.Vanilla -> when {
+            !enchant.enchantment.canEnchantItem(target) -> Outcome.WRONG_ITEM
+            target.enchantments.keys.any { it != enchant.enchantment && it.conflictsWith(enchant.enchantment) } -> Outcome.CONFLICT
+            else -> null
+        }
+    }
+
+    /**
+     * [stack] 의 [enchant] 를 [level] 로 바꾼다(0 이하면 뗀다). 우리 인첸트를 새로 붙일 때는 진화 사슬의 아래 단계(`removed-enchants`)를
+     * 지운다. 로어도 다시 그린다. **붙일 수 있는지는 보지 않는다** — 강화 스크롤과 관리자 붙이기·떼기가 부른다.
+     */
+    fun setLevel(stack: ItemStack, enchant: ScrollEnchant, level: Int) {
+        when (enchant) {
+            is ScrollEnchant.Custom -> {
+                val current = EnchantStorage.read(stack)
+                val id = enchant.def.id
+                if (level <= 0) current.remove(id) else {
+                    if (id !in current) for (removed in enchant.def.settings.removedEnchants) current.remove(removed)
+                    current[id] = level
+                }
+                EnchantStorage.write(stack, current)
+            }
+            is ScrollEnchant.Vanilla ->
+                if (level <= 0) stack.removeEnchantment(enchant.enchantment) else stack.addUnsafeEnchantment(enchant.enchantment, level)
+        }
+        e.lore.render(stack)
+    }
+
+    // --- 관리자: 손에 든 것에 바로 붙이기·떼기 --------------------------------------------------
+
+    /** 손에 든 것에 [def] 를 [level] 로(최대 레벨까지). 칸·붙는 곳·확률을 보지 않는다. 명령어와 `내 아이템` 화면이 부른다. */
+    fun adminSet(player: Player, def: EnchantDefinition, level: Int) {
+        val stack = player.inventory.itemInMainHand
+        val clamped = level.coerceIn(1, def.maxLevel.coerceAtLeast(1))
+        setLevel(stack, ScrollEnchant.Custom(def), clamped)
+        player.inventory.setItemInMainHand(stack)
+        e.statics.refresh(player)
+        e.messages.send(player, "admin-enchant-added", e.ph().enchant(e.display(def, clamped)))
+    }
+
+    /** 손에 든 것에서 [id] 를 뗀다. 정의가 지워진 id 도 뗀다. 붙어 있지 않았으면 false. */
+    fun adminRemove(player: Player, id: String): Boolean {
+        val stack = player.inventory.itemInMainHand
+        val key = id.lowercase()
+        val enchants = EnchantStorage.read(stack)
+        if (enchants.remove(key) == null) return false
+        EnchantStorage.write(stack, enchants)
+        e.lore.render(stack)
+        player.inventory.setItemInMainHand(stack)
+        e.statics.refresh(player)
+        e.messages.send(player, "admin-enchant-removed", e.ph().enchant(e.registry.get(key)?.let { e.lore.name(it) } ?: key))
+        return true
     }
 
     // --- 아이템 위에 쓰는 것 ------------------------------------------------------------------

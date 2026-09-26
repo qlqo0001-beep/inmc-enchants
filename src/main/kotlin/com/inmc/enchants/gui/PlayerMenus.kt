@@ -7,6 +7,7 @@ import com.inmc.enchants.enchant.EnchantDefinition
 import com.inmc.enchants.item.EnchantStorage
 import com.inmc.enchants.item.Keys
 import com.inmc.enchants.item.Trackers
+import kr.inmc.core.gui.ConfirmMenu
 import kr.inmc.core.gui.Icon
 import kr.inmc.core.gui.Paging
 import kr.inmc.core.util.Numbers
@@ -201,9 +202,30 @@ class HeldItemMenu(e: Enchants, viewer: Player) : Menu(e, viewer, 54, "<dark_gre
         } else {
             set(4, held.clone())
             val enchants = e.lore.ordered(EnchantStorage.read(held))
+            val admin = viewer.hasPermission(EnchantsCommand.ADMIN)
             for ((index, pair) in enchants.take(27).withIndex()) {
                 val (def, level) = pair
-                set(18 + index, Icon.of(Material.ENCHANTED_BOOK, e.display(def, level), def.descriptionFor(level).map { "<gray>$it</gray>" }))
+                val lore = def.descriptionFor(level).map { "<gray>$it</gray>" } + (if (admin) listOf("", "<red>▶ 클릭: 떼기 (관리자)") else emptyList())
+                set(18 + index, Icon.of(Material.ENCHANTED_BOOK, e.display(def, level), lore)) {
+                    if (!admin) return@set
+                    ConfirmMenu(e, "<red>" + e.display(def, level) + " 을(를) 뗄까요?", onConfirm = {
+                        e.uses.adminRemove(viewer, def.id)
+                        show()
+                    }, onCancel = { show() }).open(viewer)
+                }
+            }
+            if (admin) {
+                set(48, Icon.of(Material.ENCHANTING_TABLE, "<red>인첸트 붙이기 (관리자)", "<gray>인첸트 → 레벨을 고르면 손에 든 것에 바로 붙입니다.", "<gray>칸·붙는 곳·확률을 보지 않습니다.", "", "<yellow>▶ 클릭")) {
+                    PickMenu(e, viewer, "<dark_red>붙일 인첸트</dark_red>", e.registry.all(), icon = { enchantIcon(e, it) }, back = { show() }) { def ->
+                        val id = def.id
+                        PickMenu(e, viewer, "<dark_red>레벨</dark_red>", (1..def.maxLevel.coerceAtLeast(1)).toList(), icon = { Icon.of(Material.PAPER, e.display(def, it)) }, back = { show() }) { level ->
+                            // 고르는 사이에 손이 비었거나 인첸트가 지워졌으면 아무것도 하지 않는다.
+                            val now = e.registry.get(id)
+                            if (now != null && !viewer.inventory.itemInMainHand.type.isAir) e.uses.adminSet(viewer, now, level)
+                            show()
+                        }.show()
+                    }.show()
+                }
             }
             val pdc = held.itemMeta.persistentDataContainer
             val info = buildList {
