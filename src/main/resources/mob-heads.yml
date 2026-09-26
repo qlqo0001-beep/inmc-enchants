@@ -1,0 +1,6 @@
+# 머리 떨구기(DROP_HEAD) 가 쓰는 몹 머리 텍스처.
+# 바닐라에 머리가 있는 몹(좀비·스켈레톤·크리퍼·위더 스켈레톤·피글린·엔더 드래곤)과 플레이어는 여기 적지 않아도 됩니다.
+# 나머지 몹은 엔티티 종류 이름 아래에 머리 텍스처(base64, "textures" 값)를 적으세요. 없으면 떨구지 않습니다.
+#
+# 예:
+# COW: "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUv...In19fQ=="

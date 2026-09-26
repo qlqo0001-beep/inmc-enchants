@@ -1,0 +1,219 @@
+# 방어구 세트와 세트 무기.
+# /인첸트 관리 → 세트·무기 에서 GUI 로 만들고 고치는 것을 권장합니다.
+#
+# 세트: 네 부위를 모두 입으면 events 가 돕니다. 입고 벗을 때 equipped / unequipped 를 알립니다.
+#   material  LEATHER · CHAINMAIL · IRON · GOLDEN · COPPER · DIAMOND · NETHERITE (AE 의 GOLD · CHAIN 도 받습니다)
+#   color     가죽일 때만. #RRGGBB
+#   pieces    helmet · chestplate · leggings · boots — 이름·설명·모델 번호(custom-model-data)·숨김(flags)·인첸트
+#   enchants  "id:레벨" 또는 "id:최소-최대"(줄 때마다 굴림). 바닐라·커스텀 인첸트 둘 다. AE 의 "id:%1-3%" 도 받습니다
+#             이름이 같으면 커스텀이 먼저입니다(protection 은 커스텀 "가호"). 바닐라를 뜻하면 "minecraft:protection:4"
+#
+# 무기: 손에 들고 있으면 events 가 돕니다. require-set 을 적으면 그 세트를 다 입었을 때만.
+#
+# events 의 모양은 인첸트 레벨과 같습니다: 발동 조건 → chance · cooldown · conditions · effects.
+# 효과 줄 문법도 인첸트와 같습니다(enchantments.yml 참고). EFFECT_STATIC 은 "입고 있는 동안".
+
+sets:
+  frost_giant:
+    name: "<aqua><bold>서리 거인"
+    material: DIAMOND
+    equipped:
+      - "<aqua>서리 거인의 냉기가 몸을 감쌉니다. <gray>(주는 피해 +10% · 받는 피해 -10%)"
+    unequipped:
+      - "<gray>서리 거인의 냉기가 흩어졌습니다."
+    pieces:
+      helmet:
+        name: "<aqua><bold>서리 거인의 투구"
+        lore: ["<gray>얼어붙은 산맥에서 깎아 낸 투구.", "", "<aqua><bold>세트 효과", "<aqua>· 주는 피해 +10%", "<aqua>· 받는 피해 -10%", "<aqua>· 공격 시 15% 로 적을 느리게", "<dark_gray>(네 부위를 모두 입어야 합니다)"]
+        enchants: ["minecraft:protection:4", "unbreaking:3", "frozen:1-3", "armored:1-3", "implants:1-2"]
+      chestplate:
+        name: "<aqua><bold>서리 거인의 흉갑"
+        lore: ["<gray>숨을 쉴 때마다 서리가 맺힌다.", "", "<aqua><bold>세트 효과", "<aqua>· 주는 피해 +10%", "<aqua>· 받는 피해 -10%", "<aqua>· 공격 시 15% 로 적을 느리게", "<dark_gray>(네 부위를 모두 입어야 합니다)"]
+        enchants: ["minecraft:protection:4", "unbreaking:3", "frozen:1-3", "tank:1-3", "angelic:1-3"]
+      leggings:
+        name: "<aqua><bold>서리 거인의 각반"
+        lore: ["<gray>무릎까지 쌓인 눈도 막지 못한다.", "", "<aqua><bold>세트 효과", "<aqua>· 주는 피해 +10%", "<aqua>· 받는 피해 -10%", "<aqua>· 공격 시 15% 로 적을 느리게", "<dark_gray>(네 부위를 모두 입어야 합니다)"]
+        enchants: ["minecraft:protection:4", "unbreaking:3", "frozen:1-3", "armored:1-3", "lifebloom:1-2"]
+      boots:
+        name: "<aqua><bold>서리 거인의 장화"
+        lore: ["<gray>발자국마다 얼음이 핀다.", "", "<aqua><bold>세트 효과", "<aqua>· 주는 피해 +10%", "<aqua>· 받는 피해 -10%", "<aqua>· 공격 시 15% 로 적을 느리게", "<dark_gray>(네 부위를 모두 입어야 합니다)"]
+        enchants: ["minecraft:protection:4", "unbreaking:3", "frozen:1-3", "gears:1-2", "springs:1-2"]
+    events:
+      ATTACK: { effects: ["INCREASE_DAMAGE:10", "POTION:SLOWNESS:1:60 @Victim <chance>15</chance>"] }
+      ATTACK_MOB: { effects: ["INCREASE_DAMAGE:10", "POTION:SLOWNESS:1:60 @Victim <chance>15</chance>"] }
+      DEFENSE: { effects: ["DECREASE_DAMAGE:10"] }
+      DEFENSE_MOB: { effects: ["DECREASE_DAMAGE:10"] }
+
+  ember_guard:
+    name: "<gold><bold>잿불 수호자"
+    material: NETHERITE
+    equipped: ["<gold>잿불이 되살아납니다. <gray>(화염 저항 · 때린 몹을 불태움)"]
+    unequipped: ["<gray>잿불이 꺼졌습니다."]
+    pieces:
+      helmet:
+        name: "<gold><bold>잿불 투구"
+        lore: ["<gray>식지 않는 쇳물로 벼렸다.", "", "<gold><bold>세트 효과", "<gold>· 화염 저항", "<gold>· 몹을 때리면 피해 +8%", "<gold>· 몹에게 맞으면 25% 로 불태움", "<dark_gray>(네 부위를 모두 입어야 합니다)"]
+        enchants: ["minecraft:protection:4", "unbreaking:3", "molten:1-3", "armored:1-3"]
+      chestplate:
+        name: "<gold><bold>잿불 흉갑"
+        lore: ["<gray>안쪽에서 불씨가 숨 쉰다.", "", "<gold><bold>세트 효과", "<gold>· 화염 저항", "<gold>· 몹을 때리면 피해 +8%", "<gold>· 몹에게 맞으면 25% 로 불태움", "<dark_gray>(네 부위를 모두 입어야 합니다)"]
+        enchants: ["minecraft:protection:4", "unbreaking:3", "molten:1-3", "phoenix:1"]
+      leggings:
+        name: "<gold><bold>잿불 각반"
+        lore: ["<gray>재가 되어도 다시 선다.", "", "<gold><bold>세트 효과", "<gold>· 화염 저항", "<gold>· 몹을 때리면 피해 +8%", "<gold>· 몹에게 맞으면 25% 로 불태움", "<dark_gray>(네 부위를 모두 입어야 합니다)"]
+        enchants: ["minecraft:protection:4", "unbreaking:3", "molten:1-3", "extinguish:1-2"]
+      boots:
+        name: "<gold><bold>잿불 장화"
+        lore: ["<gray>용암 위도 걷는다.", "", "<gold><bold>세트 효과", "<gold>· 화염 저항", "<gold>· 몹을 때리면 피해 +8%", "<gold>· 몹에게 맞으면 25% 로 불태움", "<dark_gray>(네 부위를 모두 입어야 합니다)"]
+        enchants: ["minecraft:protection:4", "unbreaking:3", "molten:1-3", "lavawalker:1"]
+    events:
+      EFFECT_STATIC: { effects: ["POTION:FIRE_RESISTANCE:0"] }
+      ATTACK_MOB: { effects: ["INCREASE_DAMAGE:8"] }
+      DEFENSE_MOB: { chance: 25, effects: ["BURN:60 @Attacker"] }
+
+  shadow_stalker:
+    name: "<dark_purple><bold>그림자 추적자"
+    material: LEATHER
+    color: "#2B2B3A"
+    equipped: ["<dark_purple>그림자에 녹아듭니다. <gray>(신속 · 웅크리면 잠깐 투명)"]
+    unequipped: ["<gray>그림자에서 벗어났습니다."]
+    pieces:
+      helmet:
+        name: "<dark_purple><bold>그림자 두건"
+        lore: ["<gray>얼굴을 기억하는 사람이 없다.", "", "<dark_purple><bold>세트 효과", "<dark_purple>· 신속 I", "<dark_purple>· 몹을 때리면 20% 로 피해 +25%", "<dark_purple>· 웅크리면 3초 투명(대기 30초)", "<dark_gray>(네 부위를 모두 입어야 합니다)"]
+        enchants: ["minecraft:protection:3", "unbreaking:3", "smokebomb:1-4", "dodge:1-3"]
+      chestplate:
+        name: "<dark_purple><bold>그림자 조끼"
+        lore: ["<gray>빛을 먹는 천.", "", "<dark_purple><bold>세트 효과", "<dark_purple>· 신속 I", "<dark_purple>· 몹을 때리면 20% 로 피해 +25%", "<dark_purple>· 웅크리면 3초 투명(대기 30초)", "<dark_gray>(네 부위를 모두 입어야 합니다)"]
+        enchants: ["minecraft:protection:3", "unbreaking:3", "dodge:1-3", "secondwind:1"]
+      leggings:
+        name: "<dark_purple><bold>그림자 바지"
+        lore: ["<gray>발소리를 삼킨다.", "", "<dark_purple><bold>세트 효과", "<dark_purple>· 신속 I", "<dark_purple>· 몹을 때리면 20% 로 피해 +25%", "<dark_purple>· 웅크리면 3초 투명(대기 30초)", "<dark_gray>(네 부위를 모두 입어야 합니다)"]
+        enchants: ["minecraft:protection:3", "unbreaking:3", "stealth:1", "dodge:1-3"]
+      boots:
+        name: "<dark_purple><bold>그림자 신발"
+        lore: ["<gray>그림자에서 그림자로.", "", "<dark_purple><bold>세트 효과", "<dark_purple>· 신속 I", "<dark_purple>· 몹을 때리면 20% 로 피해 +25%", "<dark_purple>· 웅크리면 3초 투명(대기 30초)", "<dark_gray>(네 부위를 모두 입어야 합니다)"]
+        enchants: ["minecraft:protection:3", "unbreaking:3", "featherstep:1-3", "sprinter:1-2"]
+    events:
+      EFFECT_STATIC: { effects: ["POTION:SPEED:0"] }
+      ATTACK_MOB: { chance: 20, effects: ["INCREASE_DAMAGE:25"] }
+      SHIFT: { cooldown: 30, effects: ["POTION:INVISIBILITY:0:60"] }
+
+  deep_angler:
+    name: "<blue><bold>심해 낚시꾼"
+    material: LEATHER
+    color: "#1F5FA8"
+    equipped: ["<blue>바다가 당신을 알아봅니다. <gray>(수중 호흡 · 행운 · 낚으면 경험치)"]
+    unequipped: ["<gray>바다의 가호가 멀어졌습니다."]
+    pieces:
+      helmet:
+        name: "<blue><bold>심해 낚시꾼의 모자"
+        lore: ["<gray>짠내가 배어 있다.", "", "<blue><bold>세트 효과", "<blue>· 수중 호흡 · 행운 I", "<blue>· 낚을 때마다 20% 로 경험치 12", "<blue>· 심해 낚싯대를 쓸 수 있음", "<dark_gray>(네 부위를 모두 입어야 합니다)"]
+        enchants: ["minecraft:protection:2", "unbreaking:3", "aquatic:1", "respiration:3"]
+      chestplate:
+        name: "<blue><bold>심해 낚시꾼의 조끼"
+        lore: ["<gray>주머니마다 미끼가 있다.", "", "<blue><bold>세트 효과", "<blue>· 수중 호흡 · 행운 I", "<blue>· 낚을 때마다 20% 로 경험치 12", "<blue>· 심해 낚싯대를 쓸 수 있음", "<dark_gray>(네 부위를 모두 입어야 합니다)"]
+        enchants: ["minecraft:protection:2", "unbreaking:3", "sustainingheart:1"]
+      leggings:
+        name: "<blue><bold>심해 낚시꾼의 방수 바지"
+        lore: ["<gray>허리까지 물에 잠겨도 괜찮다.", "", "<blue><bold>세트 효과", "<blue>· 수중 호흡 · 행운 I", "<blue>· 낚을 때마다 20% 로 경험치 12", "<blue>· 심해 낚싯대를 쓸 수 있음", "<dark_gray>(네 부위를 모두 입어야 합니다)"]
+        enchants: ["minecraft:protection:2", "unbreaking:3"]
+      boots:
+        name: "<blue><bold>심해 낚시꾼의 장화"
+        lore: ["<gray>갑판 위에서도 미끄러지지 않는다.", "", "<blue><bold>세트 효과", "<blue>· 수중 호흡 · 행운 I", "<blue>· 낚을 때마다 20% 로 경험치 12", "<blue>· 심해 낚싯대를 쓸 수 있음", "<dark_gray>(네 부위를 모두 입어야 합니다)"]
+        enchants: ["minecraft:protection:2", "unbreaking:3", "depth_strider:3", "aqua:1-2"]
+    events:
+      EFFECT_STATIC: { effects: ["POTION:WATER_BREATHING:0", "POTION:LUCK:0"] }
+      CATCH_FISH: { chance: 20, effects: ["EXP:12"] }
+
+  deep_miner:
+    name: "<gray><bold>심층 광부"
+    material: IRON
+    equipped: ["<gray>곡괭이가 가벼워집니다. <gray>(성급함 II · 야간 투시 · 캐면 경험치)"]
+    unequipped: ["<gray>광부의 감각이 둔해졌습니다."]
+    pieces:
+      helmet:
+        name: "<gray><bold>심층 광부의 안전모"
+        lore: ["<gray>등불이 꺼진 적이 없다.", "", "<white><bold>세트 효과", "<white>· 성급함 II · 야간 투시", "<white>· 캘 때마다 10% 로 경험치 4", "<dark_gray>(네 부위를 모두 입어야 합니다)"]
+        enchants: ["minecraft:protection:3", "unbreaking:3", "glowing:1", "hardened:1-2"]
+      chestplate:
+        name: "<gray><bold>심층 광부의 작업복"
+        lore: ["<gray>돌가루가 닳지 않는다.", "", "<white><bold>세트 효과", "<white>· 성급함 II · 야간 투시", "<white>· 캘 때마다 10% 로 경험치 4", "<dark_gray>(네 부위를 모두 입어야 합니다)"]
+        enchants: ["minecraft:protection:3", "unbreaking:3", "hardened:1-2", "fat:1-2"]
+      leggings:
+        name: "<gray><bold>심층 광부의 무릎 보호대"
+        lore: ["<gray>갱도에서 무릎을 꿇어도 아프지 않다.", "", "<white><bold>세트 효과", "<white>· 성급함 II · 야간 투시", "<white>· 캘 때마다 10% 로 경험치 4", "<dark_gray>(네 부위를 모두 입어야 합니다)"]
+        enchants: ["minecraft:protection:3", "unbreaking:3", "hardened:1-2"]
+      boots:
+        name: "<gray><bold>심층 광부의 작업화"
+        lore: ["<gray>떨어지는 돌도 견딘다.", "", "<white><bold>세트 효과", "<white>· 성급함 II · 야간 투시", "<white>· 캘 때마다 10% 로 경험치 4", "<dark_gray>(네 부위를 모두 입어야 합니다)"]
+        enchants: ["minecraft:protection:3", "unbreaking:3", "feather_falling:4", "jellylegs:1-2"]
+    events:
+      EFFECT_STATIC: { effects: ["POTION:HASTE:1", "POTION:NIGHT_VISION:0"] }
+      MINING: { chance: 10, effects: ["EXP:4"] }
+
+  sky_knight:
+    name: "<white><bold>천공 기사"
+    material: CHAINMAIL
+    equipped: ["<white>바람이 발밑을 받칩니다. <gray>(점프 강화 II · 낙하 피해 없음)"]
+    unequipped: ["<gray>바람이 잦아들었습니다."]
+    pieces:
+      helmet:
+        name: "<white><bold>천공 기사의 투구"
+        lore: ["<gray>구름 위에서 벼렸다.", "", "<white><bold>세트 효과", "<white>· 점프 강화 II", "<white>· 낙하 피해를 받지 않음", "<white>· 플레이어에게 주는 피해 +12%", "<dark_gray>(네 부위를 모두 입어야 합니다)"]
+        enchants: ["minecraft:protection:4", "unbreaking:3", "clarity:1-2"]
+      chestplate:
+        name: "<white><bold>천공 기사의 흉갑"
+        lore: ["<gray>깃털처럼 가볍다.", "", "<white><bold>세트 효과", "<white>· 점프 강화 II", "<white>· 낙하 피해를 받지 않음", "<white>· 플레이어에게 주는 피해 +12%", "<dark_gray>(네 부위를 모두 입어야 합니다)"]
+        enchants: ["minecraft:protection:4", "unbreaking:3", "angelic:1-3"]
+      leggings:
+        name: "<white><bold>천공 기사의 각반"
+        lore: ["<gray>바람을 가른다.", "", "<white><bold>세트 효과", "<white>· 점프 강화 II", "<white>· 낙하 피해를 받지 않음", "<white>· 플레이어에게 주는 피해 +12%", "<dark_gray>(네 부위를 모두 입어야 합니다)"]
+        enchants: ["minecraft:protection:4", "unbreaking:3", "armored:1-2"]
+      boots:
+        name: "<white><bold>천공 기사의 장화"
+        lore: ["<gray>땅에 닿기 전에 다시 뛴다.", "", "<white><bold>세트 효과", "<white>· 점프 강화 II", "<white>· 낙하 피해를 받지 않음", "<white>· 플레이어에게 주는 피해 +12%", "<dark_gray>(네 부위를 모두 입어야 합니다)"]
+        enchants: ["minecraft:protection:4", "unbreaking:3", "doublejump:1-2", "skyward:1"]
+    events:
+      EFFECT_STATIC: { effects: ["POTION:JUMP_BOOST:1"] }
+      FALL_DAMAGE: { effects: ["NEGATE_DAMAGE"] }
+      ATTACK: { effects: ["INCREASE_DAMAGE:12"] }
+
+weapons:
+  frost_cleaver:
+    material: DIAMOND_AXE
+    require-set: frost_giant
+    name: "<aqua><bold>서리 쪼개기"
+    lore: ["<gray>얼음 거인이 쓰던 도끼.", "", "<aqua><bold>무기 효과", "<aqua>· 주는 피해 +7%", "<dark_gray>(서리 거인 세트를 다 입어야 합니다)"]
+    enchants: ["sharpness:5", "unbreaking:3", "cleave:1-4", "shatter:1-2"]
+    events:
+      ATTACK: { effects: ["INCREASE_DAMAGE:7"] }
+      ATTACK_MOB: { effects: ["INCREASE_DAMAGE:7"] }
+
+  ember_blade:
+    material: NETHERITE_SWORD
+    require-set: ember_guard
+    name: "<gold><bold>잿불 검"
+    lore: ["<gray>칼날에서 불씨가 떨어진다.", "", "<gold><bold>무기 효과", "<gold>· 몹을 때리면 30% 로 4초 불태움", "<dark_gray>(잿불 수호자 세트를 다 입어야 합니다)"]
+    enchants: ["sharpness:5", "unbreaking:3", "fire_aspect:2", "lifesteal:1-3"]
+    events:
+      ATTACK_MOB: { chance: 30, effects: ["BURN:80 @Victim"] }
+
+  shadow_fang:
+    material: IRON_SWORD
+    require-set: shadow_stalker
+    name: "<dark_purple><bold>그림자 송곳니"
+    lore: ["<gray>보이지 않는 곳에서 문다.", "", "<dark_purple><bold>무기 효과", "<dark_purple>· 주는 피해 +10%", "<dark_purple>· 몹을 때리면 15% 로 독", "<dark_gray>(그림자 추적자 세트를 다 입어야 합니다)"]
+    enchants: ["sharpness:4", "unbreaking:3", "poison:1-2"]
+    events:
+      ATTACK: { effects: ["INCREASE_DAMAGE:10"] }
+      ATTACK_MOB: { effects: ["INCREASE_DAMAGE:10", "POTION:POISON:0:60 @Victim <chance>15</chance>"] }
+
+  deep_rod:
+    material: FISHING_ROD
+    require-set: deep_angler
+    name: "<blue><bold>심해 낚싯대"
+    lore: ["<gray>바닥까지 닿는 줄.", "", "<blue><bold>무기 효과", "<blue>· 낚을 때마다 25% 로 경험치 15", "<blue>· 붙은 미끼·쌍걸이 인첸트가 INMC 낚시 수치를 올립니다", "<dark_gray>(심해 낚시꾼 세트를 다 입어야 합니다)"]
+    enchants: ["lure:3", "luck_of_the_sea:3", "unbreaking:3", "bait:1-2", "twincatch:1-2"]
+    events:
+      CATCH_FISH: { chance: 25, effects: ["EXP:15"] }

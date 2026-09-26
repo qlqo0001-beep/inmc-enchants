@@ -1,0 +1,32 @@
+name: inmc-enchants
+version: '${version}'
+main: com.inmc.enchants.EnchantsPlugin
+api-version: '${apiVersion}'   # build.gradle.kts 의 inmc { paper } 에서 유도됨
+description: 커스텀 인첸트 - 부여서·스크롤·가루·인챈터·효과 엔진
+authors: [ INMC ]
+
+# 연동은 전부 load: OMIT 이다. BEFORE 를 걸면 Paper 가 의존성 순환을 보고 우리 간선을
+# 조용히 끊는다 (가이드 함정 1).
+dependencies:
+  server:
+    # 필수 의존은 이것 하나뿐. core 가 kotlin-stdlib 과 공용 프레임워크를 들고 있다.
+    inmc-core:        { load: BEFORE, required: true,  join-classpath: true }
+    PlaceholderAPI:   { load: OMIT,   required: false, join-classpath: true }
+    Vault:            { load: OMIT,   required: false, join-classpath: true }
+
+# commands 절은 paper-plugin.yml 에 없다 - Brigadier 로 등록한다.
+permissions:
+  inmcenchant.use:
+    description: 인첸트 허브·목록·정보·인챈터·팅커러·알케미스트·GKit·세트
+    default: true
+  inmcenchant.admin:
+    description: 인첸트 관리 전체 (편집기·지급·검증·리로드)
+    default: op
+    children:
+      inmcenchant.use: true
+  inmcenchant.bypass.souls:
+    description: 인첸트의 영혼 비용을 치르지 않는다
+    default: false
+  inmcenchant.bypass.cooldown:
+    description: 인첸트 쿨다운을 무시한다
+    default: false

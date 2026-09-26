@@ -1,0 +1,80 @@
+# 인첸트 등급. /인첸트 관리 의 "등급" 화면에서 바꿀 수 있습니다.
+#  color            등급 색 (%group-color%)
+#  order            귀한 정도. 로어 정렬과 인챈터 배치 순서
+#  rgb              가루·확장기 아이템 색 (r,g,b)
+#  slot-increaser   이 등급 확장기가 늘리는 칸
+#  magic-dust       success = 마법 가루의 성공률 증가 범위, chance = 비밀 가루가 마법 가루로 열릴 확률(%)
+#  enchanter-price  인챈터가 이 등급 미공개 부여서를 파는 값 (exp:점수 · level:레벨 · money:돈 · souls:영혼 · item:재질:개수)
+groups:
+  SIMPLE:
+    name: 일반
+    color: "&7"
+    order: 1
+    rgb: 200,200,200
+    slot-increaser: 1
+    magic-dust: { success: 1-15, chance: 22 }
+    enchanter-price: "exp:400"
+  UNIQUE:
+    name: 고급
+    color: "&a"
+    order: 2
+    rgb: 122,255,80
+    slot-increaser: 1
+    magic-dust: { success: 1-15, chance: 22 }
+    enchanter-price: "exp:800"
+  ELITE:
+    name: 희귀
+    color: "&b"
+    order: 3
+    rgb: 20,250,255
+    slot-increaser: 1
+    magic-dust: { success: 1-15, chance: 22 }
+    enchanter-price: "exp:1500"
+  ULTIMATE:
+    name: 영웅
+    color: "&e"
+    order: 4
+    rgb: 250,255,0
+    slot-increaser: 1
+    magic-dust: { success: 1-15, chance: 22 }
+    enchanter-price: "exp:2500"
+  LEGENDARY:
+    name: 전설
+    color: "&6"
+    order: 5
+    rgb: 255,170,0
+    slot-increaser: 2
+    magic-dust: { success: 1-15, chance: 20 }
+    enchanter-price: "exp:4000"
+  FABLED:
+    name: 신화
+    color: "&c"
+    order: 6
+    rgb: 255,60,60
+    slot-increaser: 2
+    magic-dust: { success: 1-10, chance: 15 }
+    enchanter-price: "level:40"
+  HEROIC:
+    name: 초월
+    color: "&d"
+    order: 7
+    rgb: 255,90,255
+    slot-increaser: 2
+    magic-dust: { success: 1-10, chance: 12 }
+    enchanter-price: "level:60"
+  SOUL:
+    name: 영혼
+    color: "&4"
+    order: 8
+    rgb: 150,0,0
+    slot-increaser: 3
+    magic-dust: { success: 1-8, chance: 10 }
+    enchanter-price: "souls:200"
+  MASTERY:
+    name: 숙련
+    color: "&5"
+    order: 9
+    rgb: 120,40,200
+    slot-increaser: 3
+    magic-dust: { success: 1-8, chance: 8 }
+    enchanter-price: "level:80"

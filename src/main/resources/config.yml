@@ -1,0 +1,147 @@
+# ============================================================
+#  inmc-enchants 설정
+#  대부분의 값은 /인첸트 관리 의 "설정" 화면에서 바꿀 수 있습니다.
+#  괄호 안은 AdvancedEnchantments 의 같은 설정 이름입니다.
+# ============================================================
+
+# 인첸트가 발동하지 않는 월드 (disable-enchants). 대소문자 구분.
+disabled-worlds: []
+
+combo:
+  # 같은 상대를 이 시간(초) 안에 다시 때리면 연속 타격(%combo%)이 이어집니다.
+  window-seconds: 3
+  # 몹이 때릴 때도 연속 타격을 셀지 (enable-combo-for-mobs)
+  mobs: true
+
+# 인첸트 설정의 showActionBar 가 켜진 것이 발동할 때 액션바. {enchant} = 이름과 레벨
+activation-action-bar: "<gray>발동: {enchant}"
+
+lore:
+  # 레벨을 로마 숫자로 (use-numbers 의 반대)
+  roman-numerals: true
+  # 최대 레벨이 1 인 인첸트는 레벨을 안 붙입니다 (hideIfOnlyOneLevel)
+  hide-level-if-only-one: true
+  # 아이템 로어의 인첸트 한 줄. {color} 등급 색, {name} 이름, {level} 레벨
+  enchant-line: "{color}{name} {level}"
+  descriptions:
+    # 인첸트 이름 아래에 설명도 붙일지 (lore-descriptions)
+    enabled: false
+    line: "{color}* <dark_gray>{description}"
+  # GROUP = 등급 순(귀한 것 먼저), APPLIED = 붙인 순 (organizeEnchantsOnItems)
+  sort: GROUP
+  souls-line: "<red>영혼: <white>{souls}"
+  white-scroll-line: "<white><bold>보호됨</bold> <gray>(화이트 스크롤)"
+  # 커스텀 인첸트가 붙은 아이템을 빛나게 (custom-enchants-cause-glow)
+  glow: true
+
+slots:
+  # 한 아이템에 붙일 수 있는 인첸트 수를 제한할지 (slots.enabled)
+  enabled: true
+  # 기본 칸 수. 권한 inmcenchant.limit.<수> 로 사람마다 다르게 줄 수 있습니다.
+  max: 9
+  # 확장기로 늘릴 수 있는 최대 (max-increase-of-slots)
+  max-increase: 5
+  # 아이템 로어에 "인첸트 칸 n/m" 을 적을지. 기본은 끔 — 커스텀아이템 관리 화면에서 봅니다.
+  display-in-lore: false
+  line: "<gray>인첸트 칸: <white>{used}<gray>/<white>{max}"
+
+books:
+  # 부여서를 아이템 위에 끌어다 놓아 붙이기 (drag-drop-application)
+  drag-drop: true
+  # 모루에서 부여서 붙이기 (anvil-application)
+  anvil: true
+  # true 면 부여서마다 성공률·파괴율을 무작위로, false 면 아래 고정값 (chances.random)
+  random-rates: true
+  success: 100
+  destroy: 0
+  # 실패했을 때 파괴율을 굴릴지 (chances.destroy-if-fail)
+  destroy-on-fail: true
+  # 파괴되면 아이템도 사라질지. false 면 부여서만 사라집니다 (destroy.destroy-item)
+  destroy-item: true
+  item: ENCHANTED_BOOK
+  # random-rates 가 true 일 때 성공률·파괴율을 뽑는 범위
+  random-success: 25-100
+  random-destroy: 0-60
+  # {color} {name} {level} {success} {destroy} {description} {applies} {max-level}
+  name: "{color}<bold><u>{name} {level}"
+  lore:
+    - "<green>성공률 {success}%"
+    - "<red>파괴율 {destroy}%"
+    - "<yellow>{description}"
+    - "<gray>{applies} 인첸트"
+    - "<gray>아이템 위에 끌어다 놓으면 붙습니다."
+
+# 미확인 부여서·인챈터·드랍이 등급을 고르는 가중치
+group-weights:
+  SIMPLE: 40
+  UNIQUE: 25
+  ELITE: 15
+  ULTIMATE: 10
+  LEGENDARY: 6
+  FABLED: 3
+  HEROIC: 1
+
+black-scroll:
+  # 블랙 스크롤로 뽑아낸 부여서의 성공률 범위
+  success: 60-100
+
+# 바닐라에서 커스텀 인첸트가 나오는 곳. 확률을 0 으로 하면 끕니다.
+sources:
+  enchanting-table:
+    # 부여대에서 쓴 레벨 1 당 커스텀 인첸트가 함께 붙을 확률(%). 30레벨이면 45%
+    chance-per-level: 1.5
+  loot:
+    # 상자 전리품(던전·요새 등)에 미확인 부여서가 섞일 확률(%)
+    chance: 15
+  villagers:
+    # 사서 주민이 새 거래를 얻을 때 커스텀 부여서를 팔 확률(%)
+    chance: 20
+    # 가격(에메랄드)
+    price: 10-40
+
+# 땜장이에서 바꾼 것을 되돌릴 수 있는 시간(시간). 되돌릴 때는 그때 받은 경험치·비밀 가루를 그대로 돌려받고,
+# 모자라면 되돌리지 않습니다. 0 이면 끕니다.
+tinkerer:
+  restore-hours: 72
+
+# 커스텀 인첸트를 못 붙이는 아이템 (AE enchantLimitation). 다른 플러그인의 특수 아이템을 지킬 때.
+limitation:
+  # 설명(로어)에 이 글이 들어 있으면. 색은 보지 않습니다. 비우면 안 봅니다
+  lore: "수정 불가"
+  # 이 PDC 표식이 있으면. 예: otherplugin:unmodifiable. 비우면 안 봅니다
+  tag: ""
+
+combining:
+  # 같은 인첸트·같은 레벨 부여서 두 장을 합쳐 한 단계 올리기 (combining)
+  enabled: true
+  # 합칠 때 두 장의 성공률을 쓸지 (combining.chances.use-chances)
+  use-chances: true
+
+effects:
+  # 블록 부수기 효과(트렌치 등)가 부순 블록마다 도구를 닳게 할지 (break-block-effect-do-all-durab)
+  break-block-damages-tool: true
+  # 돈 훔치기 효과가 알림을 보낼지 (steal-money.message-enabled)
+  steal-money-message: true
+  # 숫돌이 커스텀 인첸트도 지울지 (grindstones-remove-custom-enchants)
+  grindstone-removes: true
+
+souls:
+  # 영혼 추적기를 단 무기로 처치할 때 얻는 영혼 (souls-per-kill)
+  per-kill: 1
+  from-players: true
+  from-mobs: false
+  # 채굴·낚시로 영혼을 얻을 확률(%). 0 이면 끔 (miningSouls · fishingSouls)
+  mining-chance: 0
+  fishing-chance: 0
+
+# applies 목록에서 쓸 묶음 이름 (applies-groups). 예: MISC_HELMETS 를 applies 에 적으면 아래가 전부 붙는다
+applies-groups:
+  MISC_HELMETS:
+    - CARVED_PUMPKIN
+    - TURTLE_HELMET
+
+# 조건에서 목록처럼 쓰는 변수 (AE abilities.yml 의 conditions.custom)
+# 예: '%is holding% contains %sword types%' 가 아니라, '%sword types% contains %is holding%' 처럼 씁니다.
+list-variables:
+  '%sword types%': "WOODEN_SWORD, STONE_SWORD, IRON_SWORD, GOLDEN_SWORD, DIAMOND_SWORD, NETHERITE_SWORD"
+  '%ore types%': "COAL_ORE, IRON_ORE, COPPER_ORE, GOLD_ORE, LAPIS_ORE, REDSTONE_ORE, DIAMOND_ORE, EMERALD_ORE, NETHER_QUARTZ_ORE, NETHER_GOLD_ORE, ANCIENT_DEBRIS"

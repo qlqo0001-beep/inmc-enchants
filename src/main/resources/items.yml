@@ -1,0 +1,128 @@
+# ============================================================
+#  inmc-enchants 아이템 모양
+#  /인첸트 관리 → 아이템 에서 손에 든 것으로 재질을 바꾸고 이름·설명을 고칠 수 있습니다.
+#
+#  material            재질
+#  custom-model-data   리소스팩 모델 번호 (0 이면 안 씀)
+#  glow                반짝이게
+#  name / lore         MiniMessage 와 & 색코드. 쓸 수 있는 자리표시:
+#     {group} 등급 이름 · {color} 등급 색 · {amount} 수치 · {souls} 영혼 · {slots} 칸
+#     {success} 성공률 · {destroy} 파괴율 · {kind} 오브 종류
+#
+#  부여서 자체의 모양은 config.yml 의 books 에서 정합니다(등급별로는 groups.yml).
+# ============================================================
+items:
+  unopened-book:
+    material: BOOK
+    glow: true
+    name: "{color}<bold>{group} 미확인 부여서"
+    lore:
+      - "<gray>우클릭하면 {color}{group}<gray> 등급 인첸트 하나가 나옵니다."
+      - "<dark_gray>어떤 인첸트·몇 레벨인지는 열어 봐야 압니다."
+
+  magic-dust:
+    material: SUGAR
+    glow: true
+    name: "{color}<bold>{group} 마법 가루"
+    lore:
+      - "<green>성공률 +{amount}%"
+      - "<gray>{color}{group}<gray> 부여서 위에 끌어다 놓으면 성공률이 오릅니다."
+
+  secret-dust:
+    material: FIREWORK_STAR
+    name: "{color}<bold>{group} 비밀 가루"
+    lore:
+      - "<gray>우클릭해서 열면 마법 가루가 나올 수도 있고"
+      - "<gray>아무 쓸모 없는 가루가 나올 수도 있습니다."
+
+  mystery-dust:
+    material: GUNPOWDER
+    name: "<gray>신비한 가루"
+    lore:
+      - "<dark_gray>아무 힘도 느껴지지 않는다."
+      - "<gray>땜장이에게 팔 수 있습니다."
+
+  white-scroll:
+    material: PAPER
+    glow: true
+    name: "<white><bold>화이트 스크롤"
+    lore:
+      - "<gray>아이템 위에 끌어다 놓으면, 부여서가 실패해도"
+      - "<gray>아이템이 <red>파괴되지 않도록</red> 한 번 지켜 줍니다."
+
+  black-scroll:
+    material: INK_SAC
+    name: "<dark_gray><bold>블랙 스크롤"
+    lore:
+      - "<gray>아이템 위에 끌어다 놓으면 인첸트 하나를 무작위로"
+      - "<gray>뽑아 <green>성공률 {success}%</green><gray> 부여서로 돌려줍니다."
+
+  randomization-scroll:
+    material: MAP
+    name: "{color}<bold>{group} 무작위 스크롤"
+    lore:
+      - "<gray>{color}{group}<gray> 부여서 위에 끌어다 놓으면"
+      - "<gray>성공률·파괴율을 새로 뽑습니다."
+
+  transmog-scroll:
+    material: MOJANG_BANNER_PATTERN
+    name: "<light_purple><bold>변환 스크롤"
+    lore:
+      - "<gray>아이템 위에 끌어다 놓으면 인첸트를 등급 순으로 정렬하고"
+      - "<gray>이름 옆에 인첸트 수를 표시합니다."
+
+  slot-increaser:
+    material: PRISMARINE_CRYSTALS
+    glow: true
+    name: "{color}<bold>칸 확장기 <white>+{amount}"
+    lore:
+      - "<gray>아이템 위에 끌어다 놓으면 인첸트 칸이 <white>{amount}<gray>칸 늘어납니다."
+
+  orb:
+    material: ENDER_EYE
+    glow: true
+    name: "<aqua><bold>{kind} 오브 <white>[{amount}칸]"
+    lore:
+      - "<gray>{kind}에 끌어다 놓으면 기본 인첸트 칸이 <white>{amount}<gray>칸이 됩니다."
+
+  item-nametag:
+    material: NAME_TAG
+    name: "<yellow><bold>아이템 이름표"
+    lore:
+      - "<gray>아이템 위에 끌어다 놓은 뒤 채팅으로 새 이름을 적습니다."
+
+  stattrak:
+    material: REDSTONE
+    name: "<red><bold>처치 추적기"
+    lore:
+      - "<gray>무기에 끌어다 놓으면 플레이어 처치 수를 셉니다."
+  mobtrak:
+    material: BONE
+    name: "<red><bold>몹 처치 추적기"
+    lore:
+      - "<gray>무기에 끌어다 놓으면 몹 처치 수를 셉니다."
+  blocktrak:
+    material: IRON_NUGGET
+    name: "<aqua><bold>채굴 추적기"
+    lore:
+      - "<gray>도구에 끌어다 놓으면 캔 블록 수를 셉니다."
+  fishtrak:
+    material: COD
+    name: "<aqua><bold>낚시 추적기"
+    lore:
+      - "<gray>낚싯대에 끌어다 놓으면 낚은 물고기 수를 셉니다."
+
+  soul-tracker:
+    material: SOUL_LANTERN
+    name: "<dark_red><bold>영혼 추적기"
+    lore:
+      - "<gray>아이템에 끌어다 놓으면 영혼을 모을 수 있게 됩니다."
+      - "<gray>영혼은 영혼 인첸트를 쓸 때 빠져나갑니다."
+
+  soul-gem:
+    material: EMERALD
+    glow: true
+    name: "<dark_red><bold>영혼석 <white>[{souls}]"
+    lore:
+      - "<gray>영혼 추적기가 달린 아이템에 끌어다 놓으면 영혼을 옮겨 담습니다."
+      - "<gray>영혼석끼리 겹치면 합쳐집니다."
