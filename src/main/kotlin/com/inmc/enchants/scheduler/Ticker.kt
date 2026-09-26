@@ -23,6 +23,7 @@ class Ticker(private val e: Enchants, private val actions: ActionListener) : Tic
         step("flush") {
             e.registry.flush()
             e.groups.flush()
+            e.scrolls.flush()
         }
     }
 }

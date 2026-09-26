@@ -2,6 +2,7 @@ package com.inmc.enchants.verify
 
 import com.inmc.enchants.Enchants
 import com.inmc.enchants.effect.impl.Experience
+import com.inmc.enchants.enchant.Applicability
 import com.inmc.enchants.enchant.EnchantDefinition
 import com.inmc.enchants.enchant.EnchantLevel
 import com.inmc.enchants.enchant.Group
@@ -27,6 +28,7 @@ import com.inmc.enchants.gui.LevelListMenu
 import com.inmc.enchants.gui.MainMenu
 import com.inmc.enchants.gui.PickMenu
 import com.inmc.enchants.gui.RuleMenu
+import com.inmc.enchants.gui.ScrollAdminMenu
 import com.inmc.enchants.gui.EventListMenu
 import com.inmc.enchants.gui.BonusEffectsMenu
 import com.inmc.enchants.gui.EffectsHolder
@@ -146,6 +148,7 @@ object MenuChecks {
                 ?: from { goes<GiveMenu>(p, 21, "아이템 지급") ?: goes<AdminMenu>(p, 45, "관리") }
                 ?: from { goes<SettingsMenu>(p, 22, "설정") ?: goes<AdminMenu>(p, 45, "관리") }
                 ?: from { goes<PickMenu<*>>(p, 23, "검증 방식 고르기") ?: goes<AdminMenu>(p, 45, "관리") }
+                ?: from { goes<ScrollAdminMenu>(p, 26, "강화 스크롤") ?: goes<AdminMenu>(p, 45, "관리") }
         },
         Check("편집 화면을 끝까지 내려갔다 올라온다") { e, p ->
             val id = e.registry.get("lifesteal")?.id ?: throw Missing("배포 인첸트 'lifesteal' 이 없다")
@@ -293,6 +296,37 @@ object MenuChecks {
             } finally {
                 e.tinkerLog.discard(p.uniqueId, trade.at)
             }
+        },
+        Check("강화 스크롤: 종류 묶음 규칙에서 금지 인첸트를 켜면 규칙에 들어간다") { e, p ->
+            // 종류 묶음 고르기의 0번은 첫 보기(ALL_SWORD), 금지 고르기의 0번은 첫 인첸트다(종류 묶음은 견본이 없어 전부 보인다).
+            val key = Applicability.PRESETS.first().first
+            val first = e.scrolls.all().firstOrNull() ?: throw Missing("인첸트가 없다")
+            fun on() = first.id in e.scrolls.rules()[key].orEmpty()
+            val existed = key in e.scrolls.rules()
+            val had = on()
+            try {
+                ScrollAdminMenu(e, p).show()
+                goes<PickMenu<*>>(p, 50, "종류 묶음 고르기")
+                    ?: goes<PickMenu<*>>(p, 0, "금지 인첸트 고르기")
+                    ?: run { click(p, 0); ok(on() != had, "누른 인첸트가 규칙에 안 들어갔다") }
+            } finally {
+                if (!existed) e.scrolls.removeRule(key) else if (on() != had) e.scrolls.toggle(key, first.id)
+            }
+        },
+        Check("내 아이템: 관리자 붙이기·떼기") { e, p ->
+            val first = e.registry.all().firstOrNull() ?: throw Missing("인첸트가 없다")
+            p.inventory.setItemInMainHand(ItemStack(Material.DIAMOND_SWORD))
+            HeldItemMenu(e, p).show()
+            goes<PickMenu<*>>(p, 48, "붙일 인첸트") ?: goes<PickMenu<*>>(p, 0, "레벨")
+                ?: run {
+                    click(p, 0)
+                    ok(EnchantStorage.level(p.inventory.itemInMainHand, first.id) == 1 && top(p) is HeldItemMenu, "붙이기 뒤 ${EnchantStorage.read(p.inventory.itemInMainHand)} · ${name(p)}")
+                }
+                ?: run {
+                    click(p, 18)
+                    click(p, 11)
+                    ok(!EnchantStorage.has(p.inventory.itemInMainHand), "떼기 뒤 ${EnchantStorage.read(p.inventory.itemInMainHand)}")
+                }
         },
         Check("내 아이템: 영혼 꺼내기") { e, p ->
             val sword = ItemStack(Material.DIAMOND_SWORD).also {

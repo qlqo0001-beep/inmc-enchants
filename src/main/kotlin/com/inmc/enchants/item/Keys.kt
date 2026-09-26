@@ -46,8 +46,12 @@ object Keys {
     val BOOK_DESTROY = key("book_destroy")
     /** 가루·확장기·미공개 부여서가 속한 그룹. */
     val GROUP = key("group")
-    /** 마법 가루의 성공률 증가 · 오브·확장기의 칸 수 · 영혼 보석의 영혼 수. */
+    /** 마법 가루의 성공률 증가 · 오브·확장기의 칸 수 · 영혼 보석의 영혼 수 · 블랙·강화 스크롤의 성공률. */
     val AMOUNT = key("amount")
+    /** 강화 스크롤이 올리는 인첸트([ScrollEnchant.id] — 우리 것 `lifesteal`, 바닐라 `minecraft:sharpness`). */
+    val SCROLL_ENCHANT = key("scroll_enchant")
+    /** 강화 스크롤이 실패했을 때 한 레벨 내려갈 확률. */
+    val SCROLL_DOWNGRADE = key("scroll_downgrade")
     /** 오브의 종류(weapon·armor·tool). */
     val ORB_KIND = key("orb_kind")
     /** 같은 아이템끼리 겹쳐지지 않게 하는 값. 부여서는 한 장씩 따로 굴려야 한다. */

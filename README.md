@@ -13,6 +13,7 @@
 | `items.yml` | 플러그인 아이템의 겉모습 | — |
 | `sets.yml` | 옛 방어구 세트·세트 무기 — **커스텀아이템이 있으면 처음 한 번 옮기고 `sets.yml.migrated`** | (커스텀아이템) |
 | `mob-heads.yml` | 머리 떨구기 효과의 텍스처 | — |
+| `scrolls.yml` | 강화 스크롤의 금지 목록·바닐라 최대 레벨 | 강화 스크롤 |
 | `messages.yml` | 메시지 | — |
 
 화면에서 고치면 그 파일을 통째로 다시 씁니다. 파일 맨 위 설명은 코드가 다시 붙이므로 사라지지 않지만,
@@ -64,6 +65,34 @@ detonate:
 **진화 사슬 규칙**(배포본, `DescriptionContractTest` 가 지킨다): 확률 단계 → 확정 단계 → 상위 단계. 위 단계는 아래 단계의
 **최대 레벨**을 요구하고, 붙으면 아래 단계를 지우고, 설명 끝에 "<이름> <레벨> 이/가 있어야 붙는다" 를 적습니다.
 설명에 "확률" 이 없는 인첸트는 확률이 100% 입니다(연출 줄만 예외).
+
+## 강화 스크롤
+
+관리자가 **인첸트 하나 · 성공 확률 · 하락 확률**을 정해 만드는 아이템(`level-scroll`)입니다. 상점에서 파는 용도입니다.
+아이템 위에 끌어다 놓으면 그 인첸트가 **한 레벨 오르고, 없으면 1레벨로 붙습니다**(부여서 역할). 바닐라 인첸트(`minecraft:sharpness`)도 됩니다.
+
+판정 순서(`ItemUses.levelUp`) — 굴리기 전에 걸리면 스크롤을 쓰지 않습니다:
+
+1. 금지 표시(`limitation`) → 2. **금지 목록**(`scrolls.yml`) → 3. 최대 레벨(우리 것은 정의의 최대, 바닐라는 `vanilla-max-level` 또는 바닐라 최대)
+4. 없는 인첸트면 부여서와 같은 붙이기 검사 — 붙는 곳·커스텀아이템 전용·칸·필요 인첸트·충돌(바닐라는 `canEnchantItem`·충돌)
+5. 성공 굴림 → +1(새로 붙으면 `removed-enchants` 를 지운다)
+6. 실패하면 하락 굴림 → −1(1레벨이면 사라진다). **화이트 스크롤이 하락을 한 번 막습니다.** 없던 인첸트는 스크롤만 사라집니다
+
+이미 붙은 것을 올릴 때는 필요·충돌을 다시 보지 않습니다 — 진화 사슬의 위 단계는 붙으면서 아래 단계를 지웠습니다.
+
+```yaml
+# scrolls.yml — 관리 → 강화 스크롤 에서 고칩니다
+blacklist:
+  - target: ALL_SWORD            # 재질 · 종류 묶음 · 커스텀아이템(inmc:<id>)
+    enchants: [lifesteal, minecraft:sharpness]
+vanilla-max-level:
+  minecraft:sharpness: 10
+```
+
+- 아이템 PDC: `item=level-scroll` · `scroll_enchant`(인첸트 id) · `amount`(성공률) · `scroll_downgrade`(하락률). 같은 값끼리 겹칩니다
+- 모양은 `items.yml` 의 `level-scroll`(자리표시 `{enchant}` `{success}` `{downgrade}` `{max-level}`)
+- **커스텀아이템에서 관리**: 역할 `enchants.item` 의 종류 **강화 스크롤** — 칸 `enchant`·`success`·`downgrade`. 관리 → 강화 스크롤 →
+  **커스텀아이템에 올리기**로 이쪽에서 등록해도 됩니다. 인첸트마다 겉모습을 따로 정할 수 있습니다. 자세한 것은 `docs/customitems-level-scroll.md`
 
 ## 세트 (커스텀아이템으로 옮겼습니다)
 

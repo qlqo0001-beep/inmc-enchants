@@ -77,6 +77,7 @@ class EnchantsPlugin : JavaPlugin() {
         enchants.support.shutdown()
         enchants.registry.flushBlocking()
         enchants.groups.flushBlocking()
+        enchants.scrolls.flushBlocking()
         enchants.io.shutdown()
     }
 
@@ -125,6 +126,7 @@ class EnchantsPlugin : JavaPlugin() {
             enchants.heads.load(headsYaml.getKeys(false).associateWith { headsYaml.getString(it).orEmpty() })
             enchants.items.load(itemsYaml.getConfigurationSection("items"))
             closeOpenMenus()
+            enchants.scrolls.load()
             enchants.groups.load {
                 enchants.registry.load {
                     // 정의가 바뀌었으니 세트 효과를 다시 읽고, 걸린 지속 효과를 새 정의로 다시 건다.
@@ -147,6 +149,6 @@ class EnchantsPlugin : JavaPlugin() {
 
     companion object {
         /** 처음 한 번 깔아주는 배포 파일들. */
-        val RESOURCES = listOf("config.yml", "messages.yml", "groups.yml", "enchantments.yml", "mob-heads.yml", "items.yml", "sets.yml")
+        val RESOURCES = listOf("config.yml", "messages.yml", "groups.yml", "enchantments.yml", "mob-heads.yml", "items.yml", "sets.yml", "scrolls.yml")
     }
 }

@@ -59,6 +59,7 @@ class GiveMenu(e: Enchants, viewer: Player) : Menu(e, viewer, 54, "<dark_red>아
                         Editors.promptInt(e.prompts, viewer, "오브 칸 수", 1, 54, reopen = { show() }) { give(e.items.orb(orb, it)) }
                     }.show()
                     ItemKind.SOUL_GEM -> Editors.promptInt(e.prompts, viewer, "영혼 수", 1, 1_000_000, reopen = { show() }) { give(e.items.soulGem(it)) }
+                    ItemKind.LEVEL_SCROLL -> giveLevelScroll(e, viewer, count) { show() }
                 }
             }
         }

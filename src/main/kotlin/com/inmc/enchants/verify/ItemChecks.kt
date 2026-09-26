@@ -9,6 +9,7 @@ import com.inmc.enchants.item.ItemKind
 import com.inmc.enchants.item.ItemUses.Outcome
 import com.inmc.enchants.item.Keys
 import com.inmc.enchants.item.OrbKind
+import com.inmc.enchants.item.ScrollEnchant
 import com.inmc.enchants.set.ArmorSet
 import com.inmc.enchants.set.BonusEffects
 import com.inmc.enchants.set.SetMigration
@@ -191,6 +192,61 @@ object ItemChecks {
             val r = e.uses.use(null, e.items.blackScroll(70), item)!!
             val book = e.items.bookInfo(r.returned)
             ok(r.outcome == Outcome.BLACK_SCROLLED && !EnchantStorage.has(r.target) && book?.def?.id == "lifesteal" && book.level == 3 && book.success == 70, "결과 ${r.outcome}")
+        },
+        Check("강화 스크롤: 성공하면 한 레벨 오르고, 없는 인첸트는 1레벨로 붙는다") { e, _ ->
+            val d = def(e, "lifesteal")
+            if (d.maxLevel < 2) throw Missing("lifesteal 의 최대 레벨이 1 이다")
+            val up = e.uses.use(null, e.items.levelScroll(ScrollEnchant.Custom(d), 100, 0), sword().also { EnchantStorage.write(it, mapOf(d.id to 1)) })!!
+            val drain = def(e, "drain")
+            val fresh = e.uses.use(null, e.items.levelScroll(ScrollEnchant.Custom(drain), 100, 0), sword())!!
+            ok(up.outcome == Outcome.SCROLL_UP && up.used && EnchantStorage.level(up.target, d.id) == 2, "올리기 ${up.outcome} ${EnchantStorage.level(up.target, d.id)}")
+                ?: ok(fresh.outcome == Outcome.SCROLL_UP && EnchantStorage.level(fresh.target, drain.id) == 1, "붙이기 ${fresh.outcome}")
+        },
+        Check("강화 스크롤: 붙는 곳이 아니거나 최대 레벨이면 쓰지 않는다") { e, _ ->
+            val d = def(e, "drain")
+            val other = listOf(Material.DIAMOND_PICKAXE, Material.DIAMOND_HELMET, Material.FISHING_ROD)
+                .firstOrNull { !Applicability.matchesAny(d.applies, it.name, e.config.appliesGroups) } ?: throw Missing("drain 이 모든 표본에 붙는다")
+            val wrong = e.uses.use(null, e.items.levelScroll(ScrollEnchant.Custom(d), 100, 0), ItemStack(other))!!
+            val full = e.uses.use(null, e.items.levelScroll(ScrollEnchant.Custom(d), 100, 0), sword().also { EnchantStorage.write(it, mapOf(d.id to d.maxLevel)) })!!
+            ok(wrong.outcome == Outcome.WRONG_ITEM && !wrong.used, "붙는 곳 아님 ${wrong.outcome}")
+                ?: ok(full.outcome == Outcome.MAX_LEVEL && !full.used, "최대 레벨 ${full.outcome}")
+        },
+        Check("강화 스크롤: 실패하면 하락 확률로 한 레벨 내려가고(1레벨이면 사라진다), 화이트 스크롤이 막는다") { e, _ ->
+            val d = def(e, "lifesteal")
+            if (d.maxLevel < 2) throw Missing("lifesteal 의 최대 레벨이 1 이다")
+            fun scroll() = e.items.levelScroll(ScrollEnchant.Custom(d), 0, 100)
+            val down = e.uses.use(null, scroll(), sword().also { EnchantStorage.write(it, mapOf(d.id to 2)) })!!
+            val lost = e.uses.use(null, scroll(), sword().also { EnchantStorage.write(it, mapOf(d.id to 1)) })!!
+            val guarded = e.uses.use(null, scroll(), sword().also {
+                EnchantStorage.write(it, mapOf(d.id to 2))
+                EnchantStorage.setFlag(it, Keys.WHITE_SCROLL, true)
+            })!!
+            ok(down.outcome == Outcome.SCROLL_DOWN && EnchantStorage.level(down.target, d.id) == 1, "하락 ${down.outcome}")
+                ?: ok(lost.outcome == Outcome.SCROLL_LOST && EnchantStorage.level(lost.target, d.id) == 0, "사라짐 ${lost.outcome}")
+                ?: ok(guarded.outcome == Outcome.SCROLL_PROTECTED && EnchantStorage.level(guarded.target, d.id) == 2 && !EnchantStorage.flag(guarded.target, Keys.WHITE_SCROLL), "화이트 스크롤 ${guarded.outcome}")
+        },
+        Check("강화 스크롤: 바닐라 인첸트도 붙이고 올린다(최대 레벨까지)") { e, _ ->
+            val sharpness = e.scrolls.resolve("minecraft:sharpness") ?: throw Missing("바닐라 날카로움이 없다")
+            val max = e.scrolls.maxLevel(sharpness)
+            val fresh = e.uses.use(null, e.items.levelScroll(sharpness, 100, 0), sword())!!
+            val full = e.uses.use(null, e.items.levelScroll(sharpness, 100, 0), sword().also { it.addUnsafeEnchantment(Enchantment.SHARPNESS, max) })!!
+            ok(fresh.outcome == Outcome.SCROLL_UP && fresh.target?.getEnchantmentLevel(Enchantment.SHARPNESS) == 1, "붙이기 ${fresh.outcome}")
+                ?: ok(full.outcome == Outcome.MAX_LEVEL && !full.used, "최대 레벨($max) ${full.outcome}")
+        },
+        Check("강화 스크롤: 금지 목록에 걸리면 쓰지 않는다") { e, _ ->
+            val d = def(e, "drain")
+            // 관리자가 만든 같은 규칙이 있을 수 있다 — 검사가 바꾼 만큼만 되돌린다.
+            val key = "DIAMOND_SWORD"
+            val existed = key in e.scrolls.rules()
+            val had = d.id in e.scrolls.rules()[key].orEmpty()
+            e.scrolls.addRule(key)
+            if (!had) e.scrolls.toggle(key, d.id)
+            try {
+                val r = e.uses.use(null, e.items.levelScroll(ScrollEnchant.Custom(d), 100, 0), sword())!!
+                ok(r.outcome == Outcome.SCROLL_BLACKLISTED && !r.used, "결과 ${r.outcome}")
+            } finally {
+                if (!existed) e.scrolls.removeRule(key) else if (!had) e.scrolls.toggle(key, d.id)
+            }
         },
         Check("변환 스크롤") { e, _ ->
             val r = e.uses.use(null, e.items.transmogScroll(), sword().also { EnchantStorage.write(it, mapOf("lifesteal" to 1)) })!!

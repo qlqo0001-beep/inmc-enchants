@@ -76,7 +76,7 @@ class MenuLayoutTest {
     @Test
     fun `목록 화면의 버튼이 항목 칸을 덮지 않는다`() {
         // 0 부터 채우는 목록은 take(36) 으로 0..35 를 쓴다.
-        for (name in listOf("LevelListMenu", "ConditionListMenu", "GroupListMenu", "EffectListMenu", "EventListMenu")) {
+        for (name in listOf("LevelListMenu", "ConditionListMenu", "GroupListMenu", "EffectListMenu", "EventListMenu", "ScrollAdminMenu")) {
             assertTrue(body(name).contains("take(36)"), "$name 의 항목 수 상한이 바뀌었습니다")
             for (slot in fixed.getValue(name)) assertTrue(slot >= 36, "$name 의 $slot 이 항목 칸(0..35)을 덮습니다")
         }
