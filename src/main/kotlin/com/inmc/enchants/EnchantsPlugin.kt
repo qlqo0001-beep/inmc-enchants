@@ -34,6 +34,9 @@ class EnchantsPlugin : JavaPlugin() {
         provider = EnchantProvider(enchants)
         CustomEnchantHook.register(provider)
 
+        // 플레이어 메뉴의 개인 설정 화면에 "광역 채굴·나무 통째 베기" 를 올린다(core PlayerSettings).
+        EnchantSettings.register()
+
         val actions = ActionListener(enchants)
         ticker = Ticker(enchants, actions)
         registerListeners(actions)
@@ -69,6 +72,7 @@ class EnchantsPlugin : JavaPlugin() {
         if (!::enchants.isInitialized) return
         if (::provider.isInitialized) CustomEnchantHook.unregister(provider)
         kr.inmc.core.integration.ItemRoles.unregisterAll(com.inmc.enchants.item.EnchantRoles.OWNER)
+        EnchantSettings.unregister()
         if (::papi.isInitialized) papi.teardown()
         if (::metrics.isInitialized) metrics.stop()
         enchants.verifier.abort("서버가 내려갑니다")
