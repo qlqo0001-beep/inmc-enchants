@@ -383,10 +383,26 @@ class EffectSupport(private val e: Enchants) : Listener {
         }
         val drops = if (tool != null) block.getDrops(tool, player) else block.drops
         val location = block.location.add(0.5, 0.5, 0.5)
-        block.world.playEffect(block.location, org.bukkit.Effect.STEP_SOUND, type)
+        breakFeedback(player, block, location)
         block.type = Material.AIR
         e.drops.deliver(player, location, drops.toMutableList(), ctx)
         return true
+    }
+
+    /** 사람마다 마지막으로 깨는 소리를 낸 틱 — 광역 채굴 한 번에 한 번만 울리게. */
+    private val soundTick = java.util.concurrent.ConcurrentHashMap<java.util.UUID, Int>()
+
+    /**
+     * 효과로 깬 블록의 연출 — 입자는 블록마다, **소리는 한 번(같은 틱·같은 사람)에 한 번만, 조금 작게.**
+     * 전에는 블록마다 `STEP_SOUND`(입자 + 원래 크기의 깨는 소리)라 3x3 한 번에 8번이 겹쳐 울렸다(테섭 2026-10-02 "소리가 너무 시끄럽다").
+     * 캔 블록 자체는 바닐라가 이미 소리를 낸다.
+     */
+    private fun breakFeedback(player: Player?, block: Block, location: org.bukkit.Location) {
+        val data = block.blockData
+        block.world.spawnParticle(Particle.BLOCK, location, 14, 0.25, 0.25, 0.25, 0.0, data)
+        val now = Bukkit.getCurrentTick()
+        if (player != null && soundTick.put(player.uniqueId, now) == now) return
+        block.world.playSound(location, data.soundGroup.breakSound, 0.55f, 0.85f)
     }
 
     // --- 연출 도구 ------------------------------------------------------------------

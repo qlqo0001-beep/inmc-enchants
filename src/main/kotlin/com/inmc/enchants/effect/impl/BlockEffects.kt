@@ -32,6 +32,8 @@ internal object BlockEffects {
         map["BREAK_BLOCK"] = EffectExec { run ->
             val block = run.block ?: return@EffectExec
             if (block == run.ctx.block) return@EffectExec
+            // 개인 설정 "광역 채굴"을 끈 사람 — 캔 블록 하나만(core PlayerSettings).
+            if (!allowedBy(run, com.inmc.enchants.EnchantSettings.AREA_MINING)) return@EffectExec
             if (!run.ctx.settings.allowsMaterial(block.type.name)) return@EffectExec
             if (!sameToolFamily(run, block)) return@EffectExec
             breakOne(run, block)
@@ -39,6 +41,7 @@ internal object BlockEffects {
         map["BREAK_TREE"] = EffectExec { run ->
             val start = run.block ?: return@EffectExec
             if (!isLog(start.type)) return@EffectExec
+            if (!allowedBy(run, com.inmc.enchants.EnchantSettings.TREE_FELLING)) return@EffectExec
             val maxLogs = run.int(0).coerceIn(1, 512)
             val maxLeaves = run.int(1).coerceIn(0, 512)
             val logs = flood(start, maxLogs) { isLog(it) }
@@ -94,6 +97,12 @@ internal object BlockEffects {
             val location = run.location
             location.world.spawn(location, ExperienceOrb::class.java) { it.experience = amount }
         }
+    }
+
+    /** 플레이어가 그 개인 설정을 켜 두었나. 플레이어가 아닌 쪽(몹이 쓴 효과)은 늘 그대로. */
+    private fun allowedBy(run: EffectRun, key: String): Boolean {
+        val player = run.ctx.self as? Player ?: return true
+        return kr.inmc.core.integration.PlayerSettings.enabled(player, key)
     }
 
     private fun breakOne(run: EffectRun, block: Block): Boolean {
