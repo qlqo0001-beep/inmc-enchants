@@ -7,8 +7,10 @@
 - 테섭 정정 "직접 캔 곳 빼고는 아이템이 안 나와야, 광물이면 나와야" — 광역 채굴로 딸려 깨지는 비광석 블록은
   드랍 없이 사라진다(연출은 그대로). 직접 캔 블록은 바닐라가 부숴 그대로 나오고, 광석(`_ORE`·고대 잔해)과
   광맥 채굴(Veinmine)은 전부 떨군다. 통베기는 나무가 본체라 그대로.
-- 깨기와 무드롭은 따로 논다 — `BREAK_BLOCK` 에 `drops` 인자(기본 false). true 면 딸린 블록도 바닐라처럼
-  떨군다(채석장형). GUI에서 고를 수 있고 옛 줄(인자 없음)은 false 로 그대로 돈다.
+- 깨기와 무드롭은 따로 논다 — `BREAK_BLOCK` 에 `drops` 인자(기본 false, GUI에서 고름).
+  true 면 딸린 블록도 바닐라처럼 떨군다(채석장형). 옛 줄(인자 없음)은 false 로 그대로 돈다.
+- 개인 설정에도 따로 있다 (`enchants.area-drops`, 기본ON, 플레이어 메뉴 화면에 자동 표시).
+  끄면 인자·광석과 무관하게 딸린 것은 아무것도 안 나온다. 직접 캔 것·광맥·통베기는 그대로
   (`BlockEffects.breakOne(dropNonOres)` → `EffectSupport.breakBlock(collectDrops=...)`)
 - 개인 설정 끄기는 이미 있음(10-02: `enchants.area-mining`·`enchants.tree-felling`) — 이번에 손대지 않음
 
