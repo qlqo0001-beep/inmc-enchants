@@ -366,8 +366,17 @@ class EffectSupport(private val e: Enchants) : Listener {
     /**
      * 보호 플러그인을 존중해 부순다 — 가짜 [BlockBreakEvent] 를 쏘아 누가 취소하면 안 부순다.
      * 드랍은 [ctx] 의 드랍 효과(배수·제련·가방으로)를 똑같이 받는다.
+     *
+     * [keep] 이 있으면 그 검사를 통과한 드랍만 나온다 — 광역 채굴이 돌·조약돌까지 쓸어오는 것을
+     * 막는 데 쓴다. 직접 캔 블록은 이 길을 타지 않으므로(바닐라가 부순다) 그대로 나온다.
      */
-    fun breakBlock(player: Player?, block: Block, tool: ItemStack?, ctx: TriggerContext): Boolean {
+    fun breakBlock(
+        player: Player?,
+        block: Block,
+        tool: ItemStack?,
+        ctx: TriggerContext,
+        keep: ((ItemStack) -> Boolean)? = null,
+    ): Boolean {
         val type = block.type
         if (type.isAir || !type.isBlock || block.isLiquid || type.hardness < 0) return false
         if (UNBREAKABLE.contains(type.name)) return false
@@ -385,7 +394,9 @@ class EffectSupport(private val e: Enchants) : Listener {
         val location = block.location.add(0.5, 0.5, 0.5)
         breakFeedback(player, block, location)
         block.type = Material.AIR
-        e.drops.deliver(player, location, drops.toMutableList(), ctx)
+        val kept = drops.toMutableList()
+        if (keep != null) kept.removeIf { !keep(it) }
+        e.drops.deliver(player, location, kept, ctx)
         return true
     }
 

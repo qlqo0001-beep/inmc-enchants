@@ -108,7 +108,12 @@ internal object BlockEffects {
     private fun breakOne(run: EffectRun, block: Block): Boolean {
         val player = run.ctx.self as? Player
         val tool = run.ctx.self.equipment?.itemInMainHand
-        val broken = run.enchants.support.breakBlock(player, block, tool, run.ctx)
+        // 광역 채굴로 딸려 깨지는 돌·조약돌은 버린다 — 직접 캔 것은 이 길을 타지 않아(바닐라가 부순다)
+        // 그대로 나온다. 광맥 채굴(Veinmine)은 광석이 본체라 전부 둔다. 개인 설정 OFF 는 위에서 이미 걸렀다.
+        val keep: ((org.bukkit.inventory.ItemStack) -> Boolean)? =
+            if (keepsStoneDrops(run.line.targets.map { it.kind })) null
+            else ({ !PLAIN_STONE_DROPS.contains(it.type) })
+        val broken = run.enchants.support.breakBlock(player, block, tool, run.ctx, keep)
         if (broken && player != null && run.enchants.config.breakBlockDamagesTool) {
             damageTool(player)
         }
@@ -128,6 +133,21 @@ internal object BlockEffects {
         if (tool.type.maxDurability <= 0) return
         player.inventory.setItemInMainHand(tool.damage(1, player))
     }
+
+    /**
+     * 광맥 채굴이면 돌 드랍을 두는가 — 광석이 본체라 버리면 안 된다. 그 외 광역(Trench·Tunnel 등)은
+     * 돌·조약돌을 버린다. 서버 없이 돈다.
+     */
+    internal fun keepsStoneDrops(kinds: List<com.inmc.enchants.engine.TargetKind>): Boolean =
+        kinds.any { it == com.inmc.enchants.engine.TargetKind.VEINMINE }
+
+    /** 돌 계열 기본 드랍 — 깨면 나오는 조약돌·심층암 조약돌과 실크터치 돌. 화강암 등은 그대로 둔다. */
+    internal val PLAIN_STONE_DROPS: Set<Material> = setOf(
+        Material.STONE,
+        Material.COBBLESTONE,
+        Material.DEEPSLATE,
+        Material.COBBLED_DEEPSLATE,
+    )
 
     private fun flood(start: Block, limit: Int, accept: (Material) -> Boolean): List<Block> {
         val seen = HashSet<Block>()
