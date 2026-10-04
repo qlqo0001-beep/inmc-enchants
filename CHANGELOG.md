@@ -2,11 +2,12 @@
 
 ---
 
-## 미배포 — 광역 채굴 돌·조약돌 제외
+## 미배포 — 광역 채굴은 광석만 떨군다
 
-- 테섭 "직접 캔 곳 빼고 돌·조약돌이 안 나와야, 광맥은 다 나와야" — 효과로 딸려 깨지는 블록의 드랍에서 돌 계열
-  (돌·조약돌·심층암·심층암 조약돌)을 버린다. 직접 캔 블록은 바닐라가 부숴 그대로 나오고, 광맥 채굴(Veinmine)은
-  광석이 본체라 전부 둔다(`BlockEffects.breakOne` → `EffectSupport.breakBlock(keep=...)`)
+- 테섭 정정 "직접 캔 곳 빼고는 아이템이 안 나와야, 광물이면 나와야" — 광역 채굴로 딸려 깨지는 비광석 블록은
+  드랍 없이 사라진다(연출은 그대로). 직접 캔 블록은 바닐라가 부숴 그대로 나오고, 광석(`_ORE`·고대 잔해)과
+  광맥 채굴(Veinmine)은 전부 떨군다. 통베기는 나무가 본체라 그대로.
+  (`BlockEffects.breakOne(dropNonOres)` → `EffectSupport.breakBlock(collectDrops=...)`)
 - 개인 설정 끄기는 이미 있음(10-02: `enchants.area-mining`·`enchants.tree-felling`) — 이번에 손대지 않음
 
 ## 2026-10-02 — 광역 채굴 소리를 한 번만

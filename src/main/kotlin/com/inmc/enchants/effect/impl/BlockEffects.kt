@@ -36,7 +36,7 @@ internal object BlockEffects {
             if (!allowedBy(run, com.inmc.enchants.EnchantSettings.AREA_MINING)) return@EffectExec
             if (!run.ctx.settings.allowsMaterial(block.type.name)) return@EffectExec
             if (!sameToolFamily(run, block)) return@EffectExec
-            breakOne(run, block)
+            breakOne(run, block, dropNonOres = false)
         }
         map["BREAK_TREE"] = EffectExec { run ->
             val start = run.block ?: return@EffectExec
@@ -105,15 +105,16 @@ internal object BlockEffects {
         return kr.inmc.core.integration.PlayerSettings.enabled(player, key)
     }
 
-    private fun breakOne(run: EffectRun, block: Block): Boolean {
+    private fun breakOne(run: EffectRun, block: Block, dropNonOres: Boolean = true): Boolean {
         val player = run.ctx.self as? Player
         val tool = run.ctx.self.equipment?.itemInMainHand
-        // 광역 채굴로 딸려 깨지는 돌·조약돌은 버린다 — 직접 캔 것은 이 길을 타지 않아(바닐라가 부순다)
-        // 그대로 나온다. 광맥 채굴(Veinmine)은 광석이 본체라 전부 둔다. 개인 설정 OFF 는 위에서 이미 걸렀다.
-        val keep: ((org.bukkit.inventory.ItemStack) -> Boolean)? =
-            if (keepsStoneDrops(run.line.targets.map { it.kind })) null
-            else ({ !PLAIN_STONE_DROPS.contains(it.type) })
-        val broken = run.enchants.support.breakBlock(player, block, tool, run.ctx, keep)
+        // 광역 채굴로 딸려 깨지는 블록은 드랍 없이 사라진다. 직접 캔 것은 이 길을 타지 않아(바닐라가 부순다)
+        // 그대로 나온다. 광물(광석)은 예외 — 캐다 만 광산이 텅 비면 안 되므로 그대로 떨군다.
+        // 광맥 채굴(Veinmine)은 광석이 본체라 전부 둔다. 통베기는 나무가 본체라 건드리지 않는다.
+        // 개인 설정 OFF 는 위에서 이미 걸렀다.
+        val vein = keepsDrops(run.line.targets.map { it.kind })
+        val collect = vein || dropNonOres || isOre(block.type)
+        val broken = run.enchants.support.breakBlock(player, block, tool, run.ctx, collectDrops = collect)
         if (broken && player != null && run.enchants.config.breakBlockDamagesTool) {
             damageTool(player)
         }
@@ -135,19 +136,14 @@ internal object BlockEffects {
     }
 
     /**
-     * 광맥 채굴이면 돌 드랍을 두는가 — 광석이 본체라 버리면 안 된다. 그 외 광역(Trench·Tunnel 등)은
-     * 돌·조약돌을 버린다. 서버 없이 돈다.
+     * 광맥 채굴이면 드랍을 전부 두는가 — 광석이 본체라 버리면 안 된다. 서버 없이 돈다.
      */
-    internal fun keepsStoneDrops(kinds: List<com.inmc.enchants.engine.TargetKind>): Boolean =
+    internal fun keepsDrops(kinds: List<com.inmc.enchants.engine.TargetKind>): Boolean =
         kinds.any { it == com.inmc.enchants.engine.TargetKind.VEINMINE }
 
-    /** 돌 계열 기본 드랍 — 깨면 나오는 조약돌·심층암 조약돌과 실크터치 돌. 화강암 등은 그대로 둔다. */
-    internal val PLAIN_STONE_DROPS: Set<Material> = setOf(
-        Material.STONE,
-        Material.COBBLESTONE,
-        Material.DEEPSLATE,
-        Material.COBBLED_DEEPSLATE,
-    )
+    /** 광물(광석)인가 — `_ORE` 로 끝나는 것과 고대 잔해. 서버 없이 돈다. */
+    internal fun isOre(type: Material): Boolean =
+        type.name.endsWith("_ORE") || type == Material.ANCIENT_DEBRIS
 
     private fun flood(start: Block, limit: Int, accept: (Material) -> Boolean): List<Block> {
         val seen = HashSet<Block>()

@@ -8,32 +8,34 @@ import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 /**
- * 광역 채굴 돌·조약돌 규칙 — 직접 캔 것은 그대로, 딸려 깨지는 것은 버린다.
- * 광맥 채굴(Veinmine)은 광석이 본체라 전부 둔다. 서버 없이 돈다.
+ * 광역 채굴 드랍 규칙 — 딸려 깨지는 비광석은 드랍 없이 사라지고, 광석은 나온다.
+ * 직접 캔 것은 바닐라가 부숴 그대로. 광맥 채굴(Veinmine)은 전부 둔다. 서버 없이 돈다.
  */
 class StoneFilterTest {
 
     @Test
-    fun `광맥이면 돌 드랍을 둔다`() {
-        assertTrue(BlockEffects.keepsStoneDrops(listOf(TargetKind.VEINMINE)))
-        assertTrue(BlockEffects.keepsStoneDrops(listOf(TargetKind.BLOCK, TargetKind.VEINMINE)))
+    fun `광맥이면 드랍을 둔다`() {
+        assertTrue(BlockEffects.keepsDrops(listOf(TargetKind.VEINMINE)))
+        assertTrue(BlockEffects.keepsDrops(listOf(TargetKind.BLOCK, TargetKind.VEINMINE)))
     }
 
     @Test
-    fun `트렌치·터널이면 돌 드랍을 버린다`() {
-        assertFalse(BlockEffects.keepsStoneDrops(listOf(TargetKind.TRENCH)))
-        assertFalse(BlockEffects.keepsStoneDrops(listOf(TargetKind.TUNNEL)))
-        assertFalse(BlockEffects.keepsStoneDrops(listOf(TargetKind.BLOCK)))
-        assertFalse(BlockEffects.keepsStoneDrops(emptyList()))
+    fun `트렌치·터널이면 광석만 둔다`() {
+        assertFalse(BlockEffects.keepsDrops(listOf(TargetKind.TRENCH)))
+        assertFalse(BlockEffects.keepsDrops(listOf(TargetKind.TUNNEL)))
+        assertFalse(BlockEffects.keepsDrops(listOf(TargetKind.BLOCK)))
+        assertFalse(BlockEffects.keepsDrops(emptyList()))
     }
 
     @Test
-    fun `돌 계열 네 가지가 대상이다`() {
-        assertTrue(BlockEffects.PLAIN_STONE_DROPS.contains(Material.STONE))
-        assertTrue(BlockEffects.PLAIN_STONE_DROPS.contains(Material.COBBLESTONE))
-        assertTrue(BlockEffects.PLAIN_STONE_DROPS.contains(Material.DEEPSLATE))
-        assertTrue(BlockEffects.PLAIN_STONE_DROPS.contains(Material.COBBLED_DEEPSLATE))
-        assertFalse(BlockEffects.PLAIN_STONE_DROPS.contains(Material.DIAMOND_ORE))
-        assertFalse(BlockEffects.PLAIN_STONE_DROPS.contains(Material.DIRT))
+    fun `광석을 알아본다`() {
+        assertTrue(BlockEffects.isOre(Material.DIAMOND_ORE))
+        assertTrue(BlockEffects.isOre(Material.DEEPSLATE_IRON_ORE))
+        assertTrue(BlockEffects.isOre(Material.NETHER_GOLD_ORE))
+        assertTrue(BlockEffects.isOre(Material.ANCIENT_DEBRIS))
+        assertFalse(BlockEffects.isOre(Material.STONE))
+        assertFalse(BlockEffects.isOre(Material.COBBLESTONE))
+        assertFalse(BlockEffects.isOre(Material.DIRT))
+        assertFalse(BlockEffects.isOre(Material.OAK_LOG))
     }
 }
