@@ -10,7 +10,7 @@
 - 깨기와 무드롭은 따로 논다 — `BREAK_BLOCK` 에 `drops` 인자(기본 false, GUI에서 고름).
   true 면 딸린 블록도 바닐라처럼 떨군다(채석장형). 옛 줄(인자 없음)은 false 로 그대로 돈다.
 - 개인 설정에도 따로 있다 (`enchants.area-drops`, 기본ON, 플레이어 메뉴 화면에 자동 표시).
-  끄면 인자·광석과 무관하게 딸린 것은 아무것도 안 나온다. 직접 캔 것·광맥·통베기는 그대로
+  끄면 조약돌 같은 쓸모없는 블록은 안 나오고 광석은 나온다. 직접 캔 것·광맥·통베기는 그대로
   (`BlockEffects.breakOne(dropNonOres)` → `EffectSupport.breakBlock(collectDrops=...)`)
 - 개인 설정 끄기는 이미 있음(10-02: `enchants.area-mining`·`enchants.tree-felling`) — 이번에 손대지 않음
 

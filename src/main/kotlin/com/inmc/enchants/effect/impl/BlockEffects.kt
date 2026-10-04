@@ -108,15 +108,15 @@ internal object BlockEffects {
     private fun breakOne(run: EffectRun, block: Block, dropNonOres: Boolean = true): Boolean {
         val player = run.ctx.self as? Player
         val tool = run.ctx.self.equipment?.itemInMainHand
-        // 광역 채굴로 딸려 깨지는 블록은 드랍 없이 사라진다. 직접 캔 것은 이 길을 타지 않아(바닐라가 부순다)
-        // 그대로 나온다. 광물(광석)은 예외 — 캐다 만 광산이 텅 비면 안 되므로 그대로 떨군다.
+        // 광역 채굴로 딸려 깨지는 블록 중 쓸모없는 것(돌·조약돌 등)은 드랍 없이 사라진다.
+        // 직접 캔 것은 이 길을 타지 않아(바닐라가 부순다) 그대로 나오고, 광물은 꺼도 나온다.
         // 광맥 채굴(Veinmine)은 광석이 본체라 전부 둔다. 통베기는 나무가 본체라 건드리지 않는다.
         // 개인 설정 OFF 는 위에서 이미 걸렀다.
-        // `drops` 인자(true)가 있으면 딸린 블록도 바닐라처럼 떨군다. 개인 설정(광역 채굴 드랍 받기)을
-        // 끄면 인자·광석과 무관하게 딸린 것은 아무것도 안 나온다. 3x3(깨기)과 무드롭이 따로 논다.
+        // 조약돌을 받으려면 인챈트 `drops` 인자(true)와 개인 설정이 둘 다 켜져 있어야 한다.
+        // 3x3(깨기)과 무드롭이 따로 논다.
         val vein = keepsDrops(run.line.targets.map { it.kind })
         val personal = allowedBy(run, com.inmc.enchants.EnchantSettings.AREA_DROPS)
-        val collect = vein || dropNonOres || ((run.bool(0) || isOre(block.type)) && personal)
+        val collect = vein || dropNonOres || isOre(block.type) || (run.bool(0) && personal)
         val broken = run.enchants.support.breakBlock(player, block, tool, run.ctx, collectDrops = collect)
         if (broken && player != null && run.enchants.config.breakBlockDamagesTool) {
             damageTool(player)

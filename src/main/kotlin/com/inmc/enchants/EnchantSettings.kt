@@ -38,7 +38,7 @@ internal object EnchantSettings {
         PlayerSettings.register(
             PlayerSettings.Setting(
                 AREA_DROPS, OWNER, "광역 채굴 드랍 받기", Material.COBBLESTONE,
-                listOf("켜면 광역 채굴로 딸려 깨지는 블록의 드랍이 나옵니다.", "끄면 광석 포함 아무것도 안 나옵니다(직접 캔 것·광맥 채굴은 그대로)."),
+                listOf("켜면 광역 채굴로 딸려 깨지는 블록의 드랍이 나옵니다.", "끄면 조약돌 같은 쓸모없는 블록은 안 나오고 광석은 나옵니다(직접 캔 것·광맥 채굴은 그대로)."),
                 PlayerSettings.Toggle(true),
             ),
         )
