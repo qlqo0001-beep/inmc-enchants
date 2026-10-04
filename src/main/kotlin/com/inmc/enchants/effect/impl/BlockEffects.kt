@@ -112,8 +112,9 @@ internal object BlockEffects {
         // 그대로 나온다. 광물(광석)은 예외 — 캐다 만 광산이 텅 비면 안 되므로 그대로 떨군다.
         // 광맥 채굴(Veinmine)은 광석이 본체라 전부 둔다. 통베기는 나무가 본체라 건드리지 않는다.
         // 개인 설정 OFF 는 위에서 이미 걸렀다.
+        // `drops` 인자(true)가 있으면 딸린 블록도 바닐라처럼 떨군다 — 3x3(깨기)과 무드롭이 따로 논다.
         val vein = keepsDrops(run.line.targets.map { it.kind })
-        val collect = vein || dropNonOres || isOre(block.type)
+        val collect = vein || dropNonOres || run.bool(0) || isOre(block.type)
         val broken = run.enchants.support.breakBlock(player, block, tool, run.ctx, collectDrops = collect)
         if (broken && player != null && run.enchants.config.breakBlockDamagesTool) {
             damageTool(player)
