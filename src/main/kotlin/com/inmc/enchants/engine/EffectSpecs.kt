@@ -110,7 +110,8 @@ object EffectSpecs {
         EffectSpec("WEB_WALKER", "거미줄 통과", "거미줄에서 느려지지 않는다", Category.MOVEMENT, reversible = true),
 
         // --- 블록·채굴 -----------------------------------------------------------------
-        EffectSpec("BREAK_BLOCK", "블록 부수기", "대상 블록을 부순다(보호 구역 존중)", Category.BLOCK, acts = Acts.BLOCK),
+        EffectSpec("BREAK_BLOCK", "블록 부수기", "대상 블록을 부순다(보호 구역 존중)", Category.BLOCK,
+            listOf(bool("drops", "딸린 블록 드랍", "false")), Acts.BLOCK),
         EffectSpec("BREAK_TREE", "나무 통째로 베기", "이어진 원목(과 잎)을 한 번에 벤다", Category.BLOCK,
             listOf(int("logs", "최대 원목", "128"), int("leaves", "최대 잎", "0")), Acts.BLOCK),
         EffectSpec("SET_BLOCK", "블록 바꾸기", "대상 블록을 바꾼다", Category.BLOCK,

@@ -58,6 +58,9 @@ class AdminMenu(e: Enchants, viewer: Player) : Menu(e, viewer, 54, "<dark_red>�
         set(26, Icon.of(Material.PAPER, "<yellow>강화 스크롤", "<gray>금지 목록(어떤 아이템에 어떤 인첸트를", "<gray>스크롤로 붙이면 안 되는지)·바닐라 최대 레벨·지급", "", "<yellow>▶ 클릭")) {
             ScrollAdminMenu(e, viewer).show()
         }
+        set(36, Icon.of(Material.COMPASS, "<gold>어드민 메뉴로", "<gray>각 플러그인 설정 허브로 돌아갑니다.", "", "<yellow>▶ 클릭")) {
+            viewer.performCommand("메뉴 어드민")
+        }
         if (e.registry.problems.isNotEmpty()) {
             set(31, Icon.of(Material.RED_DYE, "<red>설정 문제 " + e.registry.problems.size + "건", e.registry.problems.take(10).map { "<gray>$it" }))
         }

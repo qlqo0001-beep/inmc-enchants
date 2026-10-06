@@ -36,7 +36,7 @@ internal object BlockEffects {
             if (!allowedBy(run, com.inmc.enchants.EnchantSettings.AREA_MINING)) return@EffectExec
             if (!run.ctx.settings.allowsMaterial(block.type.name)) return@EffectExec
             if (!sameToolFamily(run, block)) return@EffectExec
-            breakOne(run, block)
+            breakOne(run, block, dropNonOres = false)
         }
         map["BREAK_TREE"] = EffectExec { run ->
             val start = run.block ?: return@EffectExec
@@ -105,10 +105,19 @@ internal object BlockEffects {
         return kr.inmc.core.integration.PlayerSettings.enabled(player, key)
     }
 
-    private fun breakOne(run: EffectRun, block: Block): Boolean {
+    private fun breakOne(run: EffectRun, block: Block, dropNonOres: Boolean = true): Boolean {
         val player = run.ctx.self as? Player
         val tool = run.ctx.self.equipment?.itemInMainHand
-        val broken = run.enchants.support.breakBlock(player, block, tool, run.ctx)
+        // 광역 채굴로 딸려 깨지는 블록 중 쓸모없는 것(돌·조약돌 등)은 드랍 없이 사라진다.
+        // 직접 캔 것은 이 길을 타지 않아(바닐라가 부순다) 그대로 나오고, 광물은 꺼도 나온다.
+        // 광맥 채굴(Veinmine)은 광석이 본체라 전부 둔다. 통베기는 나무가 본체라 건드리지 않는다.
+        // 개인 설정 OFF 는 위에서 이미 걸렀다.
+        // 조약돌을 받으려면 인챈트 `drops` 인자(true)와 개인 설정이 둘 다 켜져 있어야 한다.
+        // 3x3(깨기)과 무드롭이 따로 논다.
+        val vein = keepsDrops(run.line.targets.map { it.kind })
+        val personal = allowedBy(run, com.inmc.enchants.EnchantSettings.AREA_DROPS)
+        val collect = vein || dropNonOres || isOre(block.type) || (run.bool(0) && personal)
+        val broken = run.enchants.support.breakBlock(player, block, tool, run.ctx, collectDrops = collect)
         if (broken && player != null && run.enchants.config.breakBlockDamagesTool) {
             damageTool(player)
         }
@@ -128,6 +137,16 @@ internal object BlockEffects {
         if (tool.type.maxDurability <= 0) return
         player.inventory.setItemInMainHand(tool.damage(1, player))
     }
+
+    /**
+     * 광맥 채굴이면 드랍을 전부 두는가 — 광석이 본체라 버리면 안 된다. 서버 없이 돈다.
+     */
+    internal fun keepsDrops(kinds: List<com.inmc.enchants.engine.TargetKind>): Boolean =
+        kinds.any { it == com.inmc.enchants.engine.TargetKind.VEINMINE }
+
+    /** 광물(광석)인가 — `_ORE` 로 끝나는 것과 고대 잔해. 서버 없이 돈다. */
+    internal fun isOre(type: Material): Boolean =
+        type.name.endsWith("_ORE") || type == Material.ANCIENT_DEBRIS
 
     private fun flood(start: Block, limit: Int, accept: (Material) -> Boolean): List<Block> {
         val seen = HashSet<Block>()
