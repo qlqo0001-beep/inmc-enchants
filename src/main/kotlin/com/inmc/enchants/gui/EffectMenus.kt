@@ -255,6 +255,8 @@ class EffectLineMenu(e: Enchants, viewer: Player, private val ref: LevelRef, pri
                 refresh()
             }
             ArgType.CHOICE -> {
+                // 보기가 많으면 물약·입자처럼 고르는 화면으로(2026-10-08).
+                if (arg.choices.size >= Editors.PICK_FROM) return choose(arg.label, arg.choices, Material.PAPER) { setArg(i, it) }
                 setArg(i, Editors.cycle(event, arg.choices, arg.choices.firstOrNull { it.equals(value, ignoreCase = true) } ?: arg.choices.first()))
                 refresh()
             }

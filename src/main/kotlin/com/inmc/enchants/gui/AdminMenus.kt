@@ -150,10 +150,16 @@ class EnchantEditMenu(e: Enchants, viewer: Player, private val id: String) :
             }.show()
         }
         val groups = e.groups.all()
-        set(23, Icon.of(Material.AMETHYST_SHARD, "<yellow>등급: " + e.groups.get(def.group).color + e.groups.get(def.group).name,
-            Editors.optionList(groups.map { it.id }, def.group.uppercase()) { g -> e.groups.get(g).name } + Editors.cycleHint)) { event ->
-            mutate { d -> d.copy(group = Editors.cycle(event, groups.map { it.id }, d.group.uppercase())) }
-            refresh()
+        set(23, Icon.of(Material.AMETHYST_SHARD, "<yellow>등급: " + e.groups.get(def.group).color + e.groups.get(def.group).name, Editors.pickHint)) {
+            // 등급은 관리자가 늘리는 목록 — 발동 조건과 같이 고르는 화면으로(2026-10-08).
+            PickMenu(
+                e, viewer, "등급 고르기", groups.map { it.id },
+                icon = { Icon.of(Material.AMETHYST_SHARD, e.groups.get(it).color + e.groups.get(it).name + (if (it == def.group.uppercase()) " <green>▶</green>" else "")) },
+                back = { show() },
+            ) { picked ->
+                mutate { d -> d.copy(group = picked) }
+                show()
+            }.show()
         }
         set(24, Icon.of(Material.LEAD, "<yellow>규칙", listOf(
             "<gray>필요: <white>" + def.settings.requiredEnchants.ifEmpty { listOf("없음") }.joinToString(", "),
