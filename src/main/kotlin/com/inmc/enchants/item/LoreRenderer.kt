@@ -41,7 +41,8 @@ class LoreRenderer(private val e: Enchants) {
             val bottom = ArrayList(Text.renderLore(statusLines(pdc)))
             if (config.slotsEnabled && config.slotsInLore && enchants.isNotEmpty()) {
                 val max = e.slots.max(stack)
-                bottom += Text.renderLore(listOf(config.slotsLine.replace("{used}", enchants.size.toString()).replace("{max}", max.toString()))).first()
+                val slots = FormatStrip.apply(config.slotsLine.replace("{used}", enchants.size.toString()).replace("{max}", max.toString()), config)
+                bottom += Text.renderLore(listOf(slots)).first()
             }
 
             meta.lore(top + middle + bottom)
@@ -55,31 +56,36 @@ class LoreRenderer(private val e: Enchants) {
                 val base = pdc.get(Keys.CUSTOM_NAME, PersistentDataType.STRING)?.let { GsonComponentSerializer.gson().deserialize(it) }
                     ?: meta.customName() ?: Component.translatable(stack.translationKey())
                 if (!pdc.has(Keys.CUSTOM_NAME)) pdc.set(Keys.CUSTOM_NAME, PersistentDataType.STRING, GsonComponentSerializer.gson().serialize(base))
-                meta.customName(base.append(Text.renderFlat(e.messages.raw("transmog-suffix").replace("{count}", enchants.size.toString()))))
+                val suffix = FormatStrip.apply(e.messages.raw("transmog-suffix").replace("{count}", enchants.size.toString()), config)
+                meta.customName(base.append(Text.renderFlat(suffix)))
             }
         }
     }
 
-    /** 인첸트 이름·레벨(+설명) 줄. MiniMessage. */
-    fun topLines(enchants: Map<String, Int>, forceGroup: Boolean = false): List<String> = buildList {
+    /** 인첸트 이름·레벨(+설명) 줄. MiniMessage. 커스텀아이템에 넘기는 줄도 여기라 장식 빼기가 둘 다에 걸린다. */
+    fun topLines(enchants: Map<String, Int>, forceGroup: Boolean = false): List<String> {
         val config = e.config
-        for ((def, level) in ordered(enchants, forceGroup)) {
-            add(line(config.enchantLine.replace("{name}", name(def)).replace("{level}", levelText(def, level)), def))
-            if (config.descriptionsInLore) {
-                for (text in def.descriptionFor(level)) add(line(config.descriptionLine.replace("{description}", text), def))
+        return buildList {
+            for ((def, level) in ordered(enchants, forceGroup)) {
+                add(line(config.enchantLine.replace("{name}", name(def)).replace("{level}", levelText(def, level)), def))
+                if (config.descriptionsInLore) {
+                    for (text in def.descriptionFor(level)) add(line(config.descriptionLine.replace("{description}", text), def))
+                }
             }
-        }
+        }.map { FormatStrip.apply(it, config) }
     }
 
     /** 보호됨 · 영혼 · 킬 수 줄. MiniMessage. */
-    fun statusLines(pdc: org.bukkit.persistence.PersistentDataContainer): List<String> = buildList {
+    fun statusLines(pdc: org.bukkit.persistence.PersistentDataContainer): List<String> {
         val config = e.config
-        if (pdc.has(Keys.WHITE_SCROLL)) add(config.whiteScrollLine)
-        if (pdc.has(Keys.SOUL_TRACKER)) add(config.soulsLine.replace("{souls}", (pdc.get(Keys.SOULS, PersistentDataType.INTEGER) ?: 0).toString()))
-        for (tracker in Trackers.ALL) {
-            val count = pdc.get(tracker.key, PersistentDataType.INTEGER) ?: continue
-            add(e.messages.raw(tracker.loreKey).replace("{count}", count.toString()))
-        }
+        return buildList {
+            if (pdc.has(Keys.WHITE_SCROLL)) add(config.whiteScrollLine)
+            if (pdc.has(Keys.SOUL_TRACKER)) add(config.soulsLine.replace("{souls}", (pdc.get(Keys.SOULS, PersistentDataType.INTEGER) ?: 0).toString()))
+            for (tracker in Trackers.ALL) {
+                val count = pdc.get(tracker.key, PersistentDataType.INTEGER) ?: continue
+                add(e.messages.raw(tracker.loreKey).replace("{count}", count.toString()))
+            }
+        }.map { FormatStrip.apply(it, config) }
     }
 
     /** 표시 순서. 그룹 정렬이면 귀한 것부터, 아니면 붙인 순서. 모르는 인첸트는 뺀다. */

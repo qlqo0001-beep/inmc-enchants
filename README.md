@@ -7,7 +7,7 @@
 
 | 파일 | 무엇 | GUI |
 |---|---|---|
-| `config.yml` | 칸 제한·부여서 확률·합치기·출처·영혼·로어 모양·금지 표시(`limitation`)·목록 변수 | 설정 |
+| `config.yml` | 칸 제한·부여서 확률·합치기·출처·영혼·로어 모양·장식 빼기(`formatting`)·금지 표시(`limitation`)·목록 변수 | 설정 |
 | `enchantments.yml` | 인첸트 정의(AE 문법) | 인첸트 |
 | `groups.yml` | 등급 | 등급 |
 | `items.yml` | 플러그인 아이템의 겉모습 | — |

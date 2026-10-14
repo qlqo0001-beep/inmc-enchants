@@ -30,6 +30,17 @@ data class EnchantConfig(
     val whiteScrollLine: String = "<white><bold>보호됨</bold> <gray>(화이트 스크롤)",
     val customEnchantsGlow: Boolean = true,
 
+    // --- 장식(개인 폰트 깨짐 대응) ---
+    /**
+     * true인 장식은 **아이템 이름·로어**에서 뺀다. MiniMessage 태그와 레거시 색코드(`&l` 등) 둘 다 걸린다.
+     * 등급 색·인첸트 표시 이름에 관리자가 넣은 장식까지 빠진다. 채팅 메시지·GUI 화면은 그대로.
+     */
+    val stripBold: Boolean = false,
+    val stripUnderline: Boolean = false,
+    val stripItalic: Boolean = false,
+    val stripStrikethrough: Boolean = false,
+    val stripObfuscated: Boolean = false,
+
     // --- 칸 ---
     val slotsEnabled: Boolean = true,
     val maxSlots: Int = 9,
@@ -109,6 +120,7 @@ data class EnchantConfig(
             val lore = config.getConfigurationSection("lore")
             val slots = config.getConfigurationSection("slots")
             val books = config.getConfigurationSection("books")
+            val formatting = config.getConfigurationSection("formatting")
             val combine = config.getConfigurationSection("combining")
             val effects = config.getConfigurationSection("effects")
             val souls = config.getConfigurationSection("souls")
@@ -129,6 +141,11 @@ data class EnchantConfig(
                 slotsLine = slots?.getString("line") ?: d.slotsLine,
                 whiteScrollLine = lore?.getString("white-scroll-line") ?: d.whiteScrollLine,
                 customEnchantsGlow = lore?.getBoolean("glow", d.customEnchantsGlow) ?: d.customEnchantsGlow,
+                stripBold = formatting?.getBoolean("strip-bold", d.stripBold) ?: d.stripBold,
+                stripUnderline = formatting?.getBoolean("strip-underline", d.stripUnderline) ?: d.stripUnderline,
+                stripItalic = formatting?.getBoolean("strip-italic", d.stripItalic) ?: d.stripItalic,
+                stripStrikethrough = formatting?.getBoolean("strip-strikethrough", d.stripStrikethrough) ?: d.stripStrikethrough,
+                stripObfuscated = formatting?.getBoolean("strip-obfuscated", d.stripObfuscated) ?: d.stripObfuscated,
 
                 slotsEnabled = slots?.getBoolean("enabled", d.slotsEnabled) ?: d.slotsEnabled,
                 maxSlots = (slots?.getInt("max", d.maxSlots) ?: d.maxSlots).coerceAtLeast(1),

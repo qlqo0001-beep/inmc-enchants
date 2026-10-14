@@ -45,8 +45,20 @@ slots:
   display-in-lore: false
   line: "<gray>인첸트 칸: <white>{used}<gray>/<white>{max}"
 
+# 개인 폰트(리소스팩)에서 굵음·밑줄이 깨져 보이면 true 로 바꾸세요.
+# true인 장식은 아이템 이름·로어에서 빠집니다(색은 그대로, 채팅 메시지·GUI 화면은 그대로).
+# 예: 굵음·밑줄이 깨지면 strip-bold 와 strip-underline 을 true 로.
+# /인첸트 관리 → 설정 에서도 바꿀 수 있습니다. 이미 나간 아이템은 새로 받을 때 적용됩니다.
+formatting:
+  strip-bold: false
+  strip-underline: false
+  strip-italic: false
+  strip-strikethrough: false
+  strip-obfuscated: false
+
 books:
-  # 부여서를 아이템 위에 끌어다 놓아 붙이기 (drag-drop-application)
+  # 부여서를 아이템 위에 끌어다 놓아 붙이기 (drag-drop-application).
+  # 끄면 동작뿐 아니라 부여서 로어의 "끌어다 놓으면" 안내줄도 빠진다.
   drag-drop: true
   # 모루에서 부여서 붙이기 (anvil-application)
   anvil: true

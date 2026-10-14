@@ -170,6 +170,8 @@ class EnchantItems(private val e: Enchants) {
         val lore = (override?.lore?.takeIf { it.isNotEmpty() } ?: config.bookLore).flatMap { line ->
             if (line.contains("{description}")) description.map { line.replace("{description}", it) } else listOf(line)
         }.map { fill(it, placeholders) }
+            // `books.drag-drop` 를 끄면 안내줄을 뺀다 — 못 쓰는 방법을 로어가 가르치면 안 된다.
+            .filter { config.dragDropApply || !isDragHint(it) }
         val stack = decorate(
             ItemStack(material),
             fill(override?.name ?: config.bookName, placeholders),
@@ -368,9 +370,11 @@ class EnchantItems(private val e: Enchants) {
     }
 
     private fun decorate(stack: ItemStack, name: String, lore: List<String>, modelData: Int, glow: Boolean): ItemStack {
+        // 개인 폰트 깨짐 대응 — `formatting.strip-*` 가 켜진 장식은 여기서 빠진다(부여서·소모품 전부 이 길).
+        val config = e.config
         stack.editMeta { meta ->
-            meta.displayName(Text.renderFlat(name))
-            meta.lore(Text.renderLore(lore))
+            meta.displayName(Text.renderFlat(FormatStrip.apply(name, config)))
+            meta.lore(Text.renderLore(lore.map { FormatStrip.apply(it, config) }))
             @Suppress("DEPRECATION")
             if (modelData > 0) meta.setCustomModelData(modelData)
             if (glow) meta.setEnchantmentGlintOverride(true)
@@ -380,4 +384,11 @@ class EnchantItems(private val e: Enchants) {
 
     private fun fill(text: String, placeholders: Map<String, String>): String =
         placeholders.entries.fold(text) { acc, (key, value) -> acc.replace(key, value) }
+
+    companion object {
+        /** `books.drag-drop` 를 끄면 빼는 안내줄. 색을 뗀 글이 이 말을 품고 있으면 뺀다(기본 로어의 마지막 줄). */
+        const val DRAG_HINT_TEXT = "끌어다 놓으면"
+
+        fun isDragHint(raw: String): Boolean = Text.plain(raw).contains(DRAG_HINT_TEXT)
+    }
 }
