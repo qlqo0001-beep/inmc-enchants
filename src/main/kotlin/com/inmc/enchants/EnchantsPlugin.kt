@@ -38,6 +38,11 @@ class EnchantsPlugin : JavaPlugin() {
 
         // 플레이어 메뉴의 개인 설정 화면에 "광역 채굴·나무 통째 베기" 를 올린다(core PlayerSettings).
         EnchantSettings.register()
+        // 모드(inmc-worlds)의 기능 토글에 땜장이 기록을 올린다(core Realms, 2026-10-15).
+        kr.inmc.core.integration.Realms.register(kr.inmc.core.integration.Realms.Feature(
+            com.inmc.enchants.item.TinkerLog.FEATURE, REALM_GROUP, "땜장이 되돌리기", org.bukkit.Material.SMITHING_TABLE,
+            listOf("땜장이에 넣은 것을 되돌리는 기록 — 넣은 모드에서만 돌려받는다"),
+        ))
 
         val actions = ActionListener(enchants)
         ticker = Ticker(enchants, actions)
@@ -76,6 +81,7 @@ class EnchantsPlugin : JavaPlugin() {
         kr.inmc.core.integration.CustomItemHook.unregister(com.inmc.enchants.hook.BookItemProvider.NAMESPACE)
         kr.inmc.core.integration.ItemRoles.unregisterAll(com.inmc.enchants.item.EnchantRoles.OWNER)
         EnchantSettings.unregister()
+        kr.inmc.core.integration.Realms.unregisterAll(REALM_GROUP)
         if (::papi.isInitialized) papi.teardown()
         if (::metrics.isInitialized) metrics.stop()
         enchants.verifier.abort("서버가 내려갑니다")
@@ -159,6 +165,9 @@ class EnchantsPlugin : JavaPlugin() {
     }
 
     companion object {
+        /** core `Realms` 기능 목록의 묶음 이름. */
+        const val REALM_GROUP = "인첸트"
+
         /** 처음 한 번 깔아주는 배포 파일들. */
         val RESOURCES = listOf("config.yml", "messages.yml", "groups.yml", "enchantments.yml", "mob-heads.yml", "items.yml", "sets.yml", "scrolls.yml")
     }

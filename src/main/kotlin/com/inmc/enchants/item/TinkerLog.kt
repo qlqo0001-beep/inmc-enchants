@@ -1,6 +1,7 @@
 package com.inmc.enchants.item
 
 import com.inmc.enchants.Enchants
+import kr.inmc.core.integration.Realms
 import org.bukkit.configuration.file.YamlConfiguration
 import org.bukkit.entity.Player
 import org.bukkit.inventory.ItemStack
@@ -24,6 +25,9 @@ import java.util.concurrent.ConcurrentHashMap
  * ## 되돌리기 순서 — 복사보다 잃는 쪽
  * 받은 것을 먼저 거두고 → 기록을 지워 저장하고 → 아이템을 돌려준다. 돌려주기 전에 죽으면 그 거래는 잃지만,
  * 거꾸로 하면 같은 아이템을 두 번 받을 수 있다.
+ *
+ * ## 모드마다 따로 (2026-10-15, core [Realms] — inmc-worlds)
+ * 기록은 `(사람, scope)` 마다 — `tinkerer/<uuid>@<모드>.yml`(같이 쓰기·모드 없음이면 옛 `<uuid>.yml`). 되돌리기가 넣은 아이템을 **넣은 모드에서만** 돌려준다.
  */
 class TinkerLog(private val e: Enchants) {
 
@@ -32,7 +36,14 @@ class TinkerLog(private val e: Enchants) {
 
     enum class Result { RESTORED, GONE, EXPIRED, NO_EXP, NO_DUST }
 
-    private val loaded = ConcurrentHashMap<UUID, MutableList<Trade>>()
+    /** 기록 한 벌의 주인 — 사람과 scope(모드). */
+    private data class Key(val player: UUID, val scope: String) {
+        val file: String get() = Realms.key(player.toString(), scope) + ".yml"
+    }
+
+    private fun key(player: UUID): Key = Key(player, Realms.scope(FEATURE, player))
+
+    private val loaded = ConcurrentHashMap<Key, MutableList<Trade>>()
 
     private val folder: File get() = e.io.file("tinkerer")
 
@@ -80,13 +91,14 @@ class TinkerLog(private val e: Enchants) {
     }
 
     fun forget(player: UUID) {
-        loaded.remove(player)
+        loaded.keys.removeIf { it.player == player }
     }
 
-    private fun of(player: UUID): MutableList<Trade> = loaded.getOrPut(player) { read(player) }
+    private fun of(player: UUID): MutableList<Trade> = key(player).let { k -> loaded.getOrPut(k) { read(k) } }
 
-    private fun read(player: UUID): MutableList<Trade> {
-        val file = File(folder, "$player.yml")
+    private fun read(k: Key): MutableList<Trade> {
+        val player = k.player
+        val file = File(folder, k.file)
         if (!file.isFile) return ArrayList()
         val yaml = YamlConfiguration.loadConfiguration(file)
         return yaml.getKeys(false).mapNotNull { key ->
@@ -98,8 +110,9 @@ class TinkerLog(private val e: Enchants) {
     }
 
     private fun save(player: UUID) {
-        val list = loaded[player] ?: return
-        val target = File(folder, "$player.yml")
+        val k = key(player)
+        val list = loaded[k] ?: return
+        val target = File(folder, k.file)
         if (list.isEmpty()) {
             target.delete()
             return
@@ -112,7 +125,7 @@ class TinkerLog(private val e: Enchants) {
             section.set("dusts", trade.dusts.map(::encode))
         }
         folder.mkdirs()
-        val temp = File(folder, "$player.yml.tmp")
+        val temp = File(folder, k.file + ".tmp")
         temp.writeText(yaml.saveToString(), Charsets.UTF_8)
         try {
             Files.move(temp.toPath(), target.toPath(), StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE)
@@ -124,4 +137,9 @@ class TinkerLog(private val e: Enchants) {
     private fun encode(stack: ItemStack): String = Base64.getEncoder().encodeToString(stack.serializeAsBytes())
 
     private fun decode(raw: String): ItemStack = ItemStack.deserializeBytes(Base64.getDecoder().decode(raw))
+
+    companion object {
+        /** core [Realms] 기능 열쇠 — 땜장이 되돌리기 기록을 모드마다 따로 둘지. */
+        const val FEATURE = "enchants.tinkerer"
+    }
 }
