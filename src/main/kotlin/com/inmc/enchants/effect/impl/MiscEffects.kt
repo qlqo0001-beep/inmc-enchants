@@ -2,6 +2,7 @@ package com.inmc.enchants.effect.impl
 
 import com.inmc.enchants.effect.EffectExec
 import com.inmc.enchants.item.EnchantStorage
+import kr.inmc.core.integration.Vanish
 import org.bukkit.Bukkit
 import org.bukkit.entity.Player
 import java.time.Duration
@@ -18,8 +19,8 @@ internal object MiscEffects {
         map["SUBTITLE"] = EffectExec { run ->
             run.player?.showTitle(title(net.kyori.adventure.text.Component.empty(), run.enchants.text(run.arg(0))))
         }
-        map["BROADCAST"] = EffectExec { run -> Bukkit.broadcast(run.enchants.text(run.arg(0))) }
-        map["BROADCAST_PERMISSION"] = EffectExec { run -> Bukkit.broadcast(run.enchants.text(run.arg(1)), run.arg(0)) }
+        map["BROADCAST"] = EffectExec { run -> broadcast(run, run.enchants.text(run.arg(0)), null) }
+        map["BROADCAST_PERMISSION"] = EffectExec { run -> broadcast(run, run.enchants.text(run.arg(1)), run.arg(0)) }
         map["CONSOLE_COMMAND"] = EffectExec { run ->
             Bukkit.dispatchCommand(Bukkit.getConsoleSender(), run.arg(0).trim().removePrefix("/"))
         }
@@ -104,6 +105,23 @@ internal object MiscEffects {
         val stack = run.ctx.item ?: return
         run.enchants.lore.render(stack)
         run.ctx.slot?.let { run.ctx.self.equipment?.setItem(it, stack) }
+    }
+
+    /**
+     * 전체 방송. 방송 글은 변수로 발동한 사람·상대의 이름을 담을 수 있다 — 그중 투명한 사람이 있으면 그 사람을 볼 수 있는
+     * 사람(core `Vanish.canSee`)과 콘솔에게만 보낸다(2026-10-10). 아무도 투명하지 않으면 전과 같다.
+     */
+    private fun broadcast(run: com.inmc.enchants.effect.EffectRun, message: net.kyori.adventure.text.Component, permission: String?) {
+        val hidden = listOfNotNull(run.ctx.self as? Player, run.ctx.opponent as? Player, run.player).distinct().filter(Vanish::isVanished)
+        if (hidden.isEmpty()) {
+            if (permission == null) Bukkit.broadcast(message) else Bukkit.broadcast(message, permission)
+            return
+        }
+        for (viewer in Bukkit.getOnlinePlayers()) {
+            if (permission != null && !viewer.hasPermission(permission)) continue
+            if (hidden.all { Vanish.canSee(viewer, it) }) viewer.sendMessage(message)
+        }
+        Bukkit.getConsoleSender().sendMessage(message)
     }
 
     private fun title(main: net.kyori.adventure.text.Component, sub: net.kyori.adventure.text.Component) =

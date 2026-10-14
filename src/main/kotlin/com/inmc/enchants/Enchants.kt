@@ -94,6 +94,8 @@ class Enchants(override val plugin: JavaPlugin) : InmcHost {
     val uses = com.inmc.enchants.item.ItemUses(this)
     /** 강화 스크롤의 금지 목록·바닐라 최대 레벨(`scrolls.yml`). */
     val scrolls = com.inmc.enchants.item.ScrollRules(this)
+    /** 서버에서 금지한 인첸트(`disabled-enchants.yml`) — 새로 나오는 길만 막는다. */
+    val disabled = com.inmc.enchants.config.DisabledEnchants(this)
 
     val prompts = ChatPrompt(this)
 
@@ -106,6 +108,7 @@ class Enchants(override val plugin: JavaPlugin) : InmcHost {
     lateinit var fishingSignal: com.inmc.enchants.listener.FishingSignalListener
     lateinit var itemListener: com.inmc.enchants.listener.ItemListener
     lateinit var sources: com.inmc.enchants.listener.SourceListener
+    lateinit var disabledListener: com.inmc.enchants.listener.DisabledEnchantListener
 
     @Volatile
     var ready: Boolean = false

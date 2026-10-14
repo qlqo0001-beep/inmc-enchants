@@ -42,7 +42,7 @@ class SourceListener(private val e: Enchants) : Listener {
         val group = e.items.randomGroup() ?: return
         val pool = e.registry.all().filter {
             it.group.equals(group.id, ignoreCase = true) && !it.settings.disableInEnchanter && it.settings.requiredEnchants.isEmpty() &&
-                !it.settings.customItemsOnly &&
+                !it.settings.customItemsOnly && !e.disabled.isDisabled(it.id) &&
                 Applicability.matchesAny(it.applies, material, e.config.appliesGroups)
         }
         if (pool.isEmpty()) return

@@ -138,7 +138,7 @@ object MenuChecks {
                 ?: goes<EnchantInfoMenu>(p, 0, "인첸트 정보")
                 ?: run { click(p, 45); ok(top(p) === catalog, "정보 화면의 뒤로가 같은 도감(거른 상태)으로 안 돌아왔다: ${name(p)}") }
         },
-        Check("관리 → 인첸트·등급·지급·설정·검증 방식") { e, p ->
+        Check("관리 → 인첸트·등급·지급·설정·검증 방식·강화 스크롤·금지 인첸트") { e, p ->
             fun from(check: () -> String?): String? {
                 AdminMenu(e, p).show()
                 return check()
@@ -149,6 +149,7 @@ object MenuChecks {
                 ?: from { goes<SettingsMenu>(p, 22, "설정") ?: goes<AdminMenu>(p, 45, "관리") }
                 ?: from { goes<PickMenu<*>>(p, 23, "검증 방식 고르기") ?: goes<AdminMenu>(p, 45, "관리") }
                 ?: from { goes<ScrollAdminMenu>(p, 26, "강화 스크롤") ?: goes<AdminMenu>(p, 45, "관리") }
+                ?: from { goes<PickMenu<*>>(p, 28, "금지 인첸트") ?: goes<AdminMenu>(p, 45, "관리") }
         },
         Check("편집 화면을 끝까지 내려갔다 올라온다") { e, p ->
             val id = e.registry.get("lifesteal")?.id ?: throw Missing("배포 인첸트 'lifesteal' 이 없다")

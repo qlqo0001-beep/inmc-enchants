@@ -33,6 +33,8 @@ class EnchantsPlugin : JavaPlugin() {
         // 정의를 다 읽기 전에 꽂는다 — 공급처는 레지스트리를 그때그때 읽으므로 비어 있는 동안은 "없음"이다.
         provider = EnchantProvider(enchants)
         CustomEnchantHook.register(provider)
+        // 만들기 전용 공급처 `inmcenchant:<인첸트>:<레벨>[:<성공>:<파괴>]` — 부여서를 /지급·킷·보상이 같은 참조로 만든다(2026-10-10).
+        kr.inmc.core.integration.CustomItemHook.register(com.inmc.enchants.hook.BookItemProvider(enchants))
 
         // 플레이어 메뉴의 개인 설정 화면에 "광역 채굴·나무 통째 베기" 를 올린다(core PlayerSettings).
         EnchantSettings.register()
@@ -71,6 +73,7 @@ class EnchantsPlugin : JavaPlugin() {
     override fun onDisable() {
         if (!::enchants.isInitialized) return
         if (::provider.isInitialized) CustomEnchantHook.unregister(provider)
+        kr.inmc.core.integration.CustomItemHook.unregister(com.inmc.enchants.hook.BookItemProvider.NAMESPACE)
         kr.inmc.core.integration.ItemRoles.unregisterAll(com.inmc.enchants.item.EnchantRoles.OWNER)
         EnchantSettings.unregister()
         if (::papi.isInitialized) papi.teardown()
@@ -82,6 +85,7 @@ class EnchantsPlugin : JavaPlugin() {
         enchants.registry.flushBlocking()
         enchants.groups.flushBlocking()
         enchants.scrolls.flushBlocking()
+        enchants.disabled.saveOnShutdown()
         enchants.io.shutdown()
     }
 
@@ -102,6 +106,8 @@ class EnchantsPlugin : JavaPlugin() {
         manager.registerEvents(enchants.itemListener, this)
         enchants.sources = com.inmc.enchants.listener.SourceListener(enchants)
         manager.registerEvents(enchants.sources, this)
+        enchants.disabledListener = com.inmc.enchants.listener.DisabledEnchantListener(enchants)
+        manager.registerEvents(enchants.disabledListener, this)
         manager.registerEvents(enchants.verifier, this)
         manager.registerEvents(kr.inmc.core.listener.MenuListener(enchants), this)
     }
@@ -131,6 +137,7 @@ class EnchantsPlugin : JavaPlugin() {
             enchants.items.load(itemsYaml.getConfigurationSection("items"))
             closeOpenMenus()
             enchants.scrolls.load()
+            enchants.disabled.loadOrImport()
             enchants.groups.load {
                 enchants.registry.load {
                     // 정의가 바뀌었으니 세트 효과를 다시 읽고, 걸린 지속 효과를 새 정의로 다시 건다.

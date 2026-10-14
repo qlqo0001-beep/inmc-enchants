@@ -13,7 +13,8 @@
 | `items.yml` | 플러그인 아이템의 겉모습 | — |
 | `sets.yml` | 옛 방어구 세트·세트 무기 — **커스텀아이템이 있으면 처음 한 번 옮기고 `sets.yml.migrated`** | (커스텀아이템) |
 | `mob-heads.yml` | 머리 떨구기 효과의 텍스처 | — |
-| `scrolls.yml` | 강화 스크롤의 금지 목록·바닐라 최대 레벨 | 강화 스크롤 |
+| `scrolls.yml` | 강화 스크롤의 금지 목록·바닐라 최대 레벨(`/인첸트 부여` 의 바닐라 한도도 이것) | 강화 스크롤 |
+| `disabled-enchants.yml` | 서버 금지 인첸트(`disabled:` 목록 — `lifesteal` · `minecraft:sharpness`). 없을 때 한 번 CMI 목록을 가져온다 | 금지 인첸트 |
 | `messages.yml` | 메시지 | — |
 
 화면에서 고치면 그 파일을 통째로 다시 씁니다. 파일 맨 위 설명은 코드가 다시 붙이므로 사라지지 않지만,
@@ -73,7 +74,7 @@ detonate:
 
 판정 순서(`ItemUses.levelUp`) — 굴리기 전에 걸리면 스크롤을 쓰지 않습니다:
 
-1. 금지 표시(`limitation`) → 2. **금지 목록**(`scrolls.yml`) → 3. 최대 레벨(우리 것은 정의의 최대, 바닐라는 `vanilla-max-level` 또는 바닐라 최대)
+1. 금지 표시(`limitation`) → 2. **금지 목록**(`scrolls.yml`) → 2-1. 서버 금지 인첸트(`disabled-enchants.yml`) → 3. 최대 레벨(우리 것은 정의의 최대, 바닐라는 `vanilla-max-level` 또는 바닐라 최대)
 4. 없는 인첸트면 부여서와 같은 붙이기 검사 — 붙는 곳·커스텀아이템 전용·칸·필요 인첸트·충돌(바닐라는 `canEnchantItem`·충돌)
 5. 성공 굴림 → +1(새로 붙으면 `removed-enchants` 를 지운다)
 6. 실패하면 하락 굴림 → −1(1레벨이면 사라진다). **화이트 스크롤이 하락을 한 번 막습니다.** 없던 인첸트는 스크롤만 사라집니다

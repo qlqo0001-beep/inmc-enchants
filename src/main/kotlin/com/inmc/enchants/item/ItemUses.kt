@@ -71,6 +71,8 @@ class ItemUses(private val e: Enchants) {
         SCROLL_LOST("scroll-lost", false),
         SCROLL_PROTECTED("scroll-protected", false),
         SCROLL_BLACKLISTED("scroll-blacklisted", false),
+        /** 서버에서 금지한 인첸트(`disabled-enchants.yml`) — 부여서·강화 스크롤로 새로 붙거나 오르지 않는다. */
+        DISABLED("enchant-disabled", false),
     }
 
     /** [tool] 을 [target] 위에 쓴다. 쓸 수 없는 짝이면 null(부르는 쪽은 평소대로 둔다). */
@@ -115,6 +117,7 @@ class ItemUses(private val e: Enchants) {
         val def = info.def
         val keep = Result(Outcome.WRONG_ITEM, target, used = false, enchant = def, level = info.level)
         if (locked(target)) return keep.copy(outcome = Outcome.LOCKED)
+        if (e.disabled.isDisabled(def.id)) return keep.copy(outcome = Outcome.DISABLED)
         if (!fits(def, target)) return keep
         val current = EnchantStorage.read(target)
         val have = current[def.id]
@@ -195,7 +198,7 @@ class ItemUses(private val e: Enchants) {
     /**
      * 강화 스크롤. 판정 순서가 규칙이다 — 굴리기 전에 걸리는 것은 스크롤을 쓰지 않는다.
      *
-     * 금지 표시 → 금지 목록(`scrolls.yml`) → 없는 인첸트면 부여서와 같은 붙이기 검사(붙는 곳·칸·필요·충돌) /
+     * 금지 표시 → 금지 목록(`scrolls.yml`) → 서버 금지 인첸트(`disabled-enchants.yml`) → 없는 인첸트면 부여서와 같은 붙이기 검사(붙는 곳·칸·필요·충돌) /
      * 있는 인첸트면 최대 레벨 → 성공 굴림(+1, 없으면 1레벨로 붙는다) → 실패하면 하락 굴림(−1, 1레벨이면 사라진다).
      * 하락은 화이트 스크롤이 한 번 막는다. 이미 붙은 것을 올릴 때는 필요·충돌을 다시 보지 않는다 — 붙을 때 봤고,
      * 진화 사슬의 위 단계는 붙으면서 아래 단계를 지웠으므로 다시 보면 영영 못 올린다.
@@ -207,6 +210,7 @@ class ItemUses(private val e: Enchants) {
         val keep = Result(Outcome.WRONG_ITEM, target, used = false, label = e.scrolls.label(enchant))
         if (locked(target)) return keep.copy(outcome = Outcome.LOCKED)
         if (e.scrolls.blocked(target, enchant)) return keep.copy(outcome = Outcome.SCROLL_BLACKLISTED)
+        if (e.disabled.isDisabled(enchant.id)) return keep.copy(outcome = Outcome.DISABLED)
         if (have >= e.scrolls.maxLevel(enchant)) return keep.copy(outcome = Outcome.MAX_LEVEL)
         if (have == 0) attachable(player, enchant, target)?.let { return keep.copy(outcome = it) }
 
@@ -226,8 +230,8 @@ class ItemUses(private val e: Enchants) {
         else Result(Outcome.SCROLL_LOST, result, used = true, label = keep.label)
     }
 
-    /** 없는 인첸트를 새로 붙일 수 있는가. 붙일 수 있으면 null. */
-    private fun attachable(player: Player?, enchant: ScrollEnchant, target: ItemStack): Outcome? = when (enchant) {
+    /** 없는 인첸트를 새로 붙일 수 있는가. 붙일 수 있으면 null. 관리자 붙이기의 `-onlyvalid` 도 이것을 쓴다. */
+    fun attachable(player: Player?, enchant: ScrollEnchant, target: ItemStack): Outcome? = when (enchant) {
         is ScrollEnchant.Custom -> when {
             !fits(enchant.def, target) -> Outcome.WRONG_ITEM
             !e.slots.hasRoom(target, player) -> Outcome.NO_SLOTS
@@ -277,14 +281,57 @@ class ItemUses(private val e: Enchants) {
     fun adminRemove(player: Player, id: String): Boolean {
         val stack = player.inventory.itemInMainHand
         val key = id.lowercase()
-        val enchants = EnchantStorage.read(stack)
-        if (enchants.remove(key) == null) return false
-        EnchantStorage.write(stack, enchants)
-        e.lore.render(stack)
+        if (!removeRaw(stack, key)) return false
         player.inventory.setItemInMainHand(stack)
         e.statics.refresh(player)
         e.messages.send(player, "admin-enchant-removed", e.ph().enchant(e.registry.get(key)?.let { e.lore.name(it) } ?: key))
         return true
+    }
+
+    /** [stack] 에서 우리 인첸트 [id] 를 뗀다 — 정의가 지워진 id 도. 로어를 다시 그린다. 붙어 있지 않았으면 false. */
+    fun removeRaw(stack: ItemStack, id: String): Boolean {
+        val enchants = EnchantStorage.read(stack)
+        if (enchants.remove(id.lowercase()) == null) return false
+        EnchantStorage.write(stack, enchants)
+        e.lore.render(stack)
+        return true
+    }
+
+    /** 관리자 붙이기·떼기의 결과([adminApply]). */
+    sealed interface AdminChange {
+        data class Set(val level: Int) : AdminChange
+        data object Removed : AdminChange
+        data object NotOnItem : AdminChange
+        data class OverLimit(val cap: Int) : AdminChange
+        /** 커스텀아이템 정의가 정한 인첸트라 다시 그릴 때 도로 붙었다 — 지금 레벨은 [level](0 이면 없음). 아이템은 바뀌었을 수 있다. */
+        data class Kept(val level: Int) : AdminChange
+        data class Invalid(val outcome: Outcome) : AdminChange
+    }
+
+    /**
+     * 관리자 붙이기·떼기(`/인첸트 부여` — CMI `/cmi enchant` 대체, 2026-10-10). 우리 인첸트와 바닐라 인첸트 둘 다. [stack] 을 바로 고친다
+     * (로어는 [setLevel] 이 다시 그린다 — 커스텀아이템이면 `CustomItemHook.redraw` 길).
+     *
+     * - [level] 0 이하 = 떼기.
+     * - 우리 인첸트는 정의의 최대 레벨로 자른다(전과 같다). 바닐라는 [cap] 을 넘으면 붙이지 않는다 — [cap] 은 명령이 권한으로 정한다.
+     * - [onlyValid] 면 **새로** 붙일 때 부여서·스크롤과 같은 붙이기 검사([attachable] — 붙는 곳·충돌·칸)를 한다. 이미 붙은 것의 레벨 바꾸기는 보지 않는다.
+     * - 칸·확률·서버 금지 인첸트는 보지 않는다 — 관리자의 명시적인 명령이다.
+     * - 고친 뒤 다시 읽어 바라던 레벨이 아니면 [AdminChange.Kept] — 커스텀아이템은 다시 그릴 때 정의의 인첸트를 그 레벨까지 도로 붙인다.
+     */
+    fun adminApply(holder: Player?, stack: ItemStack, enchant: ScrollEnchant, level: Int, cap: Int, onlyValid: Boolean): AdminChange {
+        val have = e.scrolls.level(stack, enchant)
+        if (level <= 0) {
+            if (have <= 0) return AdminChange.NotOnItem
+            setLevel(stack, enchant, 0)
+            return e.scrolls.level(stack, enchant).let { if (it > 0) AdminChange.Kept(it) else AdminChange.Removed }
+        }
+        val clamped = when (enchant) {
+            is ScrollEnchant.Custom -> level.coerceAtMost(enchant.def.maxLevel.coerceAtLeast(1))
+            is ScrollEnchant.Vanilla -> if (level > cap) return AdminChange.OverLimit(cap) else level
+        }
+        if (onlyValid && have <= 0) attachable(holder, enchant, stack)?.let { return AdminChange.Invalid(it) }
+        setLevel(stack, enchant, clamped)
+        return e.scrolls.level(stack, enchant).let { if (it != clamped) AdminChange.Kept(it) else AdminChange.Set(clamped) }
     }
 
     // --- 아이템 위에 쓰는 것 ------------------------------------------------------------------

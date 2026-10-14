@@ -211,22 +211,29 @@ class EnchantItems(private val e: Enchants) {
 
     /** 이 등급의 인첸트 하나를 무작위로(레벨도 무작위). 인챈터에서 안 나오게 한 것은 뺀다. */
     fun randomEnchant(group: Group): Pair<EnchantDefinition, Int>? {
-        val pool = e.registry.all().filter { it.group.equals(group.id, ignoreCase = true) && !it.settings.disableInEnchanter }
+        val pool = drawPool(group)
         if (pool.isEmpty()) return null
         val def = pool[random.nextInt(pool.size)]
         return def to drawLevel(def)
     }
 
-    /** 뽑기에서 나오는 레벨 — 1 부터 최대(또는 `draw-max-level`)까지 고르게. */
-    fun drawLevel(def: EnchantDefinition): Int {
+    /** 이 등급의 뽑기 후보. 서버 금지 인첸트는 뽑기(미확인 부여서·사서 주민·인챈터)에서 나오지 않는다(2026-10-10). */
+    private fun drawPool(group: Group): List<EnchantDefinition> =
+        e.registry.all().filter { it.group.equals(group.id, ignoreCase = true) && !it.settings.disableInEnchanter && !e.disabled.isDisabled(it.id) }
+
+    /** 이 등급의 미확인 부여서를 열면 무엇이든 나오는가 — 아니면 팔거나 떨구지 않는다(열 수 없는 책이 된다). */
+    fun drawable(group: Group): Boolean = drawPool(group).isNotEmpty()
+
         val cap = def.maxLevel.coerceAtLeast(1).let { if (def.settings.drawMaxLevel > 0) minOf(it, def.settings.drawMaxLevel) else it }
         return 1 + random.nextInt(cap)
+    /** 뽑기에서 나오는 레벨 — 1 부터 최대(또는 `draw-max-level`)까지 고르게. */
+    fun drawLevel(def: EnchantDefinition): Int {
     }
 
-    /** 등급 가중치(`sources.group-weights`)로 등급 하나. */
+    /** 등급 가중치(`sources.group-weights`)로 등급 하나. 열어도 나올 것이 없는 등급([drawable])은 빼고 고른다. */
     fun randomGroup(): Group? {
-        val weights = e.config.groupWeights.mapNotNull { (id, weight) -> e.groups.find(id)?.let { it to weight } }.filter { it.second > 0 }
-        if (weights.isEmpty()) return e.groups.all().firstOrNull()
+        val weights = e.config.groupWeights.mapNotNull { (id, weight) -> e.groups.find(id)?.let { it to weight } }.filter { it.second > 0 && drawable(it.first) }
+        if (weights.isEmpty()) return e.groups.all().firstOrNull(::drawable)
         var roll = random.nextInt(weights.sumOf { it.second })
         for ((group, weight) in weights) {
             if (roll < weight) return group

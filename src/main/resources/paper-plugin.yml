@@ -24,6 +24,19 @@ permissions:
     default: op
     children:
       inmcenchant.use: true
+      inmcenchant.enchant: true
+      inmcenchant.enchant.others: true
+  inmcenchant.enchant:
+    description: /인첸트 부여·해제 - 손에 든 아이템에 커스텀·바닐라 인첸트를 바로 붙이고 떼기 (바닐라는 레벨 한도 안에서)
+    default: op
+  inmcenchant.enchant.others:
+    description: /인첸트 부여·해제 를 다른 플레이어의 손에 든 아이템에
+    default: op
+  inmcenchant.vanilla.bypass:
+    description: /인첸트 부여 의 바닐라 레벨 한도(scrolls.yml vanilla-max-level · inmcenchant.vanilla.<인첸트>.<레벨>)를 무시한다(255 까지)
+    default: false
+  # inmcenchant.vanilla.<인첸트>.<레벨> (예: inmcenchant.vanilla.sharpness.10) 은 인첸트·레벨마다라 여기 다 적을 수 없다.
+  # 그래서 명령은 "명시적으로 준 노드"(effectivePermissions)만 센다 - 선언 안 된 노드가 OP 에게 전부 참인 함정(지뢰 11)을 피한다.
   inmcenchant.bypass.souls:
     description: 인첸트의 영혼 비용을 치르지 않는다
     default: false

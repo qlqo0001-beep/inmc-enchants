@@ -63,7 +63,7 @@ class TinkerLog(private val e: Enchants) {
         if (trade.exp > 0) player.setExperienceLevelAndProgress(total - trade.exp)
         list.remove(trade)
         save(player.uniqueId)
-        for (stack in trade.given) for (left in player.inventory.addItem(stack.clone()).values) player.world.dropItemNaturally(player.location, left)
+        for (stack in trade.given) deliver(e, player, stack.clone(), "땜장이 되돌리기")
         return Result.RESTORED
     }
 

@@ -174,6 +174,6 @@ class ItemListener(private val e: Enchants) : Listener {
 
     private fun give(player: Player, stack: ItemStack) {
         if (player.gameMode == GameMode.SPECTATOR) return
-        for (left in player.inventory.addItem(stack).values) player.world.dropItemNaturally(player.location, left)
+        com.inmc.enchants.item.deliver(e, player, stack, "인첸트 아이템")
     }
 }

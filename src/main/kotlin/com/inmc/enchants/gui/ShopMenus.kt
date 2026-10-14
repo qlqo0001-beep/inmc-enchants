@@ -14,13 +14,12 @@ import org.bukkit.event.inventory.InventoryCloseEvent
 import org.bukkit.event.inventory.InventoryDragEvent
 import org.bukkit.inventory.ItemStack
 
-private fun give(player: Player, stack: ItemStack) {
-    for (left in player.inventory.addItem(stack).values) player.world.dropItemNaturally(player.location, left)
-}
+/** 가방이 차면 우편으로(없으면 발밑) — [com.inmc.enchants.item.deliver]. */
+private fun give(e: Enchants, player: Player, stack: ItemStack) = com.inmc.enchants.item.deliver(e, player, stack, "인첸트 거래")
 
 /**
  * 인챈터 — 등급마다 미확인 부여서 한 장을 판다. 가격은 등급의 `enchanter-price`.
- * 그 등급에 나올 인첸트가 없으면(전부 인챈터 제외) 팔지 않는다.
+ * 그 등급에 나올 인첸트가 없으면(전부 인챈터 제외·서버 금지) 팔지 않는다.
  */
 class EnchanterMenu(e: Enchants, viewer: Player) : Menu(e, viewer, 54, "<dark_purple>인챈터</dark_purple>") {
 
@@ -28,7 +27,7 @@ class EnchanterMenu(e: Enchants, viewer: Player) : Menu(e, viewer, 54, "<dark_pu
 
     override fun draw() {
         clear()
-        val groups = e.groups.all().filter { g -> e.registry.all().any { it.group.equals(g.id, ignoreCase = true) && !it.settings.disableInEnchanter } }
+        val groups = e.groups.all().filter(e.items::drawable)
         for ((index, group) in groups.take(21).withIndex()) {
             val price = Price.parse(group.enchanterPrice)
             val slot = 10 + index % 7 + (index / 7) * 9
@@ -45,7 +44,7 @@ class EnchanterMenu(e: Enchants, viewer: Player) : Menu(e, viewer, 54, "<dark_pu
                     return@set
                 }
                 price.take(e, viewer)
-                give(viewer, e.items.unopened(group))
+                give(e, viewer, e.items.unopened(group))
                 viewer.playSound(viewer.location, Sound.BLOCK_ENCHANTMENT_TABLE_USE, 1f, 1f)
                 e.messages.send(viewer, "enchanter-bought", e.ph().group(group.name))
                 refresh()
@@ -104,7 +103,7 @@ class AlchemistMenu(e: Enchants, viewer: Player) : Menu(e, viewer, 54, "<dark_aq
             val made = result() ?: return@set
             inventory.setItem(LEFT, null)
             inventory.setItem(RIGHT, null)
-            give(viewer, made)
+            give(e, viewer, made)
             viewer.playSound(viewer.location, Sound.BLOCK_BREWING_STAND_BREW, 1f, 1.2f)
             refresh()
         }
@@ -134,8 +133,8 @@ class AlchemistMenu(e: Enchants, viewer: Player) : Menu(e, viewer, 54, "<dark_aq
     }
 
     override fun onClose(event: InventoryCloseEvent) {
-        left()?.let { give(viewer, it) }
-        right()?.let { give(viewer, it) }
+        left()?.let { give(e, viewer, it) }
+        right()?.let { give(e, viewer, it) }
         inventory.setItem(LEFT, null)
         inventory.setItem(RIGHT, null)
     }
@@ -195,7 +194,7 @@ class TinkererMenu(e: Enchants, viewer: Player) : Menu(e, viewer, 54, "<gold>땜
                 val (item, points) = offer(stack) ?: continue
                 inventory.setItem(slot, null)
                 given += stack.clone()
-                item?.let { dusts += it.clone(); give(viewer, it) }
+                item?.let { dusts += it.clone(); give(e, viewer, it) }
                 total += points
             }
             if (total > 0) viewer.giveExp(total)
@@ -230,7 +229,7 @@ class TinkererMenu(e: Enchants, viewer: Player) : Menu(e, viewer, 54, "<gold>땜
         for (slot in INPUT) {
             val stack = inventory.getItem(slot) ?: continue
             inventory.setItem(slot, null)
-            give(viewer, stack)
+            give(e, viewer, stack)
         }
     }
 

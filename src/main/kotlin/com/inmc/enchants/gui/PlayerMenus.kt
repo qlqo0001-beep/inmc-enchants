@@ -239,7 +239,7 @@ class HeldItemMenu(e: Enchants, viewer: Player) : Menu(e, viewer, 54, "<dark_gre
                 set(50, Icon.of(Material.SOUL_LANTERN, "<dark_red>영혼 꺼내기", "<gray>이 아이템의 영혼을 모두 영혼석으로 꺼냅니다.", "", "<yellow>▶ 클릭")) {
                     val (emptied, gem) = e.uses.withdrawSouls(viewer.inventory.itemInMainHand) ?: return@set
                     viewer.inventory.setItemInMainHand(emptied)
-                    for (left in viewer.inventory.addItem(gem).values) viewer.world.dropItem(viewer.location, left)
+                    com.inmc.enchants.item.deliver(e, viewer, gem, "영혼 꺼내기")
                     e.messages.send(viewer, "souls-withdrawn", e.ph())
                     refresh()
                 }

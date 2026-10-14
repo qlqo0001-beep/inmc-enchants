@@ -131,7 +131,7 @@ class ActionListener(private val e: Enchants) : Listener {
             if (wasHeld && player.inventory.itemInMainHand.type.isAir) {
                 player.inventory.setItemInMainHand(saved)
             } else {
-                for (left in player.inventory.addItem(saved).values) player.world.dropItemNaturally(player.location, left)
+                com.inmc.enchants.item.deliver(e, player, saved, "부서짐 막기")
             }
         }
     }

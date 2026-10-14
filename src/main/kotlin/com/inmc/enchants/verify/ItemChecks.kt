@@ -6,6 +6,7 @@ import com.inmc.enchants.engine.Trigger
 import com.inmc.enchants.engine.TriggerContext
 import com.inmc.enchants.item.EnchantStorage
 import com.inmc.enchants.item.ItemKind
+import com.inmc.enchants.item.ItemUses.AdminChange
 import com.inmc.enchants.item.ItemUses.Outcome
 import com.inmc.enchants.item.Keys
 import com.inmc.enchants.item.OrbKind
@@ -21,8 +22,13 @@ import kr.inmc.core.util.Text
 import org.bukkit.Material
 import org.bukkit.configuration.file.YamlConfiguration
 import org.bukkit.enchantments.Enchantment
+import org.bukkit.enchantments.EnchantmentOffer
+import org.bukkit.event.enchantment.EnchantItemEvent
+import org.bukkit.event.enchantment.PrepareItemEnchantEvent
+import org.bukkit.inventory.MenuType
 import org.bukkit.entity.Player
 import org.bukkit.event.block.Action
+import org.bukkit.event.block.BlockDispenseLootEvent
 import org.bukkit.event.entity.EntityDeathEvent
 import org.bukkit.event.inventory.ClickType
 import org.bukkit.event.inventory.InventoryAction
@@ -31,6 +37,8 @@ import org.bukkit.event.inventory.InventoryType
 import org.bukkit.event.player.PlayerInteractEvent
 import org.bukkit.inventory.EquipmentSlot
 import org.bukkit.inventory.ItemStack
+import org.bukkit.inventory.meta.EnchantmentStorageMeta
+import org.bukkit.loot.LootTables
 import org.bukkit.potion.PotionEffectType
 import java.io.InputStreamReader
 
@@ -246,6 +254,95 @@ object ItemChecks {
                 ok(r.outcome == Outcome.SCROLL_BLACKLISTED && !r.used, "결과 ${r.outcome}")
             } finally {
                 if (!existed) e.scrolls.removeRule(key) else if (!had) e.scrolls.toggle(key, d.id)
+            }
+        },
+        Check("관리자 부여: 바닐라는 minecraft: 로(같은 이름 커스텀과 갈림) · 0 은 떼기 · 한도 넘으면 거절 · -onlyvalid") { e, p ->
+            val sharpness = e.scrolls.resolve("minecraft:sharpness") ?: throw Missing("바닐라 날카로움이 없다")
+            if (!p.hasPermission(com.inmc.enchants.command.EnchantsCommand.ENCHANT)) throw Missing("검증하는 사람에게 inmcenchant.enchant 가 없다")
+            // 명령 길 그대로 — 열쇠 인자의 원문 읽기(`lifesteal` 이 `minecraft:lifesteal` 이 되지 않는가)까지 지난다.
+            p.inventory.setItemInMainHand(sword())
+            p.performCommand("인첸트 부여 minecraft:sharpness 2")
+            val given = p.inventory.itemInMainHand.getEnchantmentLevel(Enchantment.SHARPNESS)
+            p.performCommand("인첸트 부여 drain 1")
+            val custom = EnchantStorage.level(p.inventory.itemInMainHand, def(e, "drain").id)
+            p.performCommand("인첸트 부여 minecraft:sharpness 0")
+            val removed = p.inventory.itemInMainHand.getEnchantmentLevel(Enchantment.SHARPNESS)
+            val cap = e.scrolls.maxLevel(sharpness)
+            val over = e.uses.adminApply(null, sword(), sharpness, cap + 1, cap, onlyValid = false)
+            val invalid = e.uses.adminApply(null, ItemStack(Material.DIAMOND_PICKAXE), sharpness, 1, cap, onlyValid = true)
+            val forced = ItemStack(Material.DIAMOND_PICKAXE).also { e.uses.adminApply(null, it, sharpness, 1, cap, onlyValid = false) }
+            // 지뢰 15: 콜론 없는 protection 은 커스텀 인첸트(가호)다.
+            val collision = e.registry.get("protection")?.let { e.scrolls.resolve("protection") is ScrollEnchant.Custom } ?: true
+            ok(given == 2, "명령으로 붙인 날카로움 $given (기대 2)")
+                ?: ok(custom == 1, "명령으로 붙인 drain $custom (기대 1)")
+                ?: ok(removed == 0, "레벨 0 으로 뗐는데 날카로움 $removed")
+                ?: ok(over == AdminChange.OverLimit(cap), "한도 $cap 를 넘겼는데 $over")
+                ?: ok(invalid == AdminChange.Invalid(Outcome.WRONG_ITEM), "-onlyvalid 곡괭이 $invalid")
+                ?: ok(forced.getEnchantmentLevel(Enchantment.SHARPNESS) == 1, "-onlyvalid 없이 곡괭이에 안 붙었다")
+                ?: ok(collision, "콜론 없는 protection 이 바닐라로 읽혔다")
+        },
+        Check("금지 인첸트: 부여대 보기·결과에서 빠지고, 모루는 원래 가진 레벨까지만") { e, p ->
+            val view = try {
+                MenuType.ENCHANTMENT.create(p)
+            } catch (t: Throwable) {
+                throw Missing("부여대 화면을 만들 수 없다(" + t.javaClass.simpleName + ")")
+            }
+            e.disabled.probe = "minecraft:sharpness"
+            try {
+                val offers = arrayOf<EnchantmentOffer?>(EnchantmentOffer(Enchantment.SHARPNESS, 1, 5), EnchantmentOffer(Enchantment.UNBREAKING, 1, 8), null)
+                val prepare = try {
+                    PrepareItemEnchantEvent(p, view, p.location.block, sword(), offers, 0)
+                } catch (t: LinkageError) {
+                    throw Missing("이 서버의 부여대 사건 모양이 다르다(" + t.javaClass.simpleName + ")")
+                }
+                e.disabledListener.onPrepareEnchant(prepare)
+                val adding = mutableMapOf(Enchantment.SHARPNESS to 2, Enchantment.UNBREAKING to 1)
+                val enchant = EnchantItemEvent(p, view, p.location.block, sword(), 8, adding, Enchantment.UNBREAKING, 1, 1)
+                e.disabledListener.onEnchant(enchant)
+                val only = EnchantItemEvent(p, view, p.location.block, sword(), 5, mutableMapOf(Enchantment.SHARPNESS to 2), Enchantment.SHARPNESS, 2, 0)
+                e.disabledListener.onEnchant(only)
+                val owned = sword().also { it.addUnsafeEnchantment(Enchantment.SHARPNESS, 3) }
+                val combined = owned.clone().also { it.addUnsafeEnchantment(Enchantment.SHARPNESS, 4); it.addUnsafeEnchantment(Enchantment.UNBREAKING, 2) }
+                val anvil = e.disabled.strip(combined, owned)
+                ok(prepare.offers[0] == null, "금지한 날카로움 보기가 남았다")
+                    ?: ok(prepare.offers[1]?.enchantment == Enchantment.UNBREAKING, "금지 안 한 보기까지 지웠다")
+                    ?: ok(Enchantment.SHARPNESS !in enchant.enchantsToAdd && Enchantment.UNBREAKING in enchant.enchantsToAdd && !enchant.isCancelled, "결과 ${enchant.enchantsToAdd} 취소 ${enchant.isCancelled}")
+                    ?: ok(only.isCancelled, "금지 인첸트만 붙을 부여가 취소되지 않았다")
+                    ?: ok(anvil?.getEnchantmentLevel(Enchantment.SHARPNESS) == 3 && anvil.getEnchantmentLevel(Enchantment.UNBREAKING) == 2, "모루 결과 ${anvil?.enchantments}")
+                    ?: ok(owned.getEnchantmentLevel(Enchantment.SHARPNESS) == 3, "모루 왼쪽(가진 아이템)이 바뀌었다")
+            } finally {
+                e.disabled.probe = null
+            }
+        },
+        Check("금지 인첸트: 금고·시련 생성기 전리품에서 빠지고, 금지 인첸트만 담긴 책은 빈 책") { e, p ->
+            e.disabled.probe = "minecraft:mending"
+            try {
+                val book = ItemStack(Material.ENCHANTED_BOOK).also { s -> s.editMeta(EnchantmentStorageMeta::class.java) { it.addStoredEnchant(Enchantment.MENDING, 1, true) } }
+                val bow = ItemStack(Material.CROSSBOW).also { it.addUnsafeEnchantment(Enchantment.MENDING, 1); it.addUnsafeEnchantment(Enchantment.UNBREAKING, 2) }
+                val event = try {
+                    BlockDispenseLootEvent(p, p.location.block, mutableListOf(book, bow), LootTables.BURIED_TREASURE.lootTable)
+                } catch (t: LinkageError) {
+                    throw Missing("이 서버의 전리품 사건 모양이 다르다(" + t.javaClass.simpleName + ")")
+                }
+                e.disabledListener.onDispenseLoot(event)
+                val loot = event.dispensedLoot
+                ok(loot.size == 2, "전리품 ${loot.size}개 (기대 2)")
+                    ?: ok(loot[0].type == Material.BOOK, "금지 인첸트만 담긴 책이 ${loot[0].type} 로 남았다")
+                    ?: ok(loot[1].getEnchantmentLevel(Enchantment.MENDING) == 0 && loot[1].getEnchantmentLevel(Enchantment.UNBREAKING) == 2, "쇠뇌 ${loot[1].enchantments}")
+            } finally {
+                e.disabled.probe = null
+            }
+        },
+        Check("금지 인첸트: 우리 부여서·강화 스크롤도 쓰지 않는다") { e, _ ->
+            val d = def(e, "drain")
+            e.disabled.probe = d.id
+            try {
+                val book = e.uses.applyBook(null, e.items.book(d, 1, 100, 0), sword())
+                val scroll = e.uses.use(null, e.items.levelScroll(ScrollEnchant.Custom(d), 100, 0), sword())!!
+                ok(book.outcome == Outcome.DISABLED && !book.used, "부여서 ${book.outcome}")
+                    ?: ok(scroll.outcome == Outcome.DISABLED && !scroll.used, "강화 스크롤 ${scroll.outcome}")
+            } finally {
+                e.disabled.probe = null
             }
         },
         Check("변환 스크롤") { e, _ ->

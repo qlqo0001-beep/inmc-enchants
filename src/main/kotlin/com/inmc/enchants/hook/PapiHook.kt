@@ -56,6 +56,14 @@ private class EnchantExpansion(private val e: Enchants) : PlaceholderExpansion()
 
     override fun persist(): Boolean = true
 
+    /** PlaceholderAPI 의 목록(`/papi info inmcenchant`)에 보일 전체 자리표시. 우리 것은 인첸트·세트 id 를 받지 않아 고정 목록이다. */
+    override fun getPlaceholders(): List<String> = KEYS.map { "%inmcenchant_" + it + "%" }
+
+    companion object {
+        /** 지금 답하는 열쇠 전부 — 식별자·열쇠는 서버 설정이 들고 있으므로 바꾸지 않는다. */
+        val KEYS = listOf("souls", "enchants", "slots_max", "set", "set_id", "enchant_count")
+    }
+
     override fun onRequest(player: OfflinePlayer?, params: String): String? {
         if (params.equals("enchant_count", true)) return e.registry.size.toString()
         val online = player as? Player ?: player?.uniqueId?.let(Bukkit::getPlayer) ?: return ""
