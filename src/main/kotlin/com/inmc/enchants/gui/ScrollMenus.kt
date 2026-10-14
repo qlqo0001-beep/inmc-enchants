@@ -12,6 +12,7 @@ import kr.inmc.core.integration.ItemRoles
 import kr.inmc.core.item.ItemRef
 import org.bukkit.Material
 import org.bukkit.entity.Player
+import org.bukkit.event.inventory.InventoryClickEvent
 import org.bukkit.inventory.ItemStack
 
 /** 강화 스크롤이 올리는 인첸트의 아이콘 — 우리 것은 도감과 같은 모양, 바닐라는 이름과 스크롤 최대 레벨. */
@@ -114,9 +115,8 @@ class ScrollAdminMenu(e: Enchants, viewer: Player) : Menu(e, viewer, 54, "<dark_
         set(48, Icon.of(Material.PAPER, "<green>강화 스크롤 지급", "<gray>인첸트 → 성공 확률 → 하락 확률", "", "<yellow>▶ 클릭")) {
             giveLevelScroll(e, viewer, 1) { show() }
         }
-        set(49, Icon.of(Material.IRON_SWORD, "<green>손에 든 아이템으로 규칙 추가", "<gray>커스텀아이템이면 그 아이템, 아니면 재질", "", "<yellow>▶ 클릭")) {
-            addFromHand()
-        }
+        set(49, Icon.of(Material.IRON_SWORD, "<green>아이템으로 규칙 추가", "<gray>커스텀아이템이면 그 아이템, 아니면 재질", "<gray>가방의 아이템은 빠지지 않습니다.", "",
+            "<yellow>▶ 아래 가방의 아이템을 Shift+클릭: 추가"))
         set(50, Icon.of(Material.NAME_TAG, "<green>종류 묶음으로 규칙 추가", "<gray>검 전부·방어구 전부 …", "", "<yellow>▶ 클릭")) {
             val presets = (Applicability.PRESETS.map { it.first } + e.config.appliesGroups.keys).distinct()
             PickMenu(e, viewer, "<dark_red>종류 묶음</dark_red>", presets, icon = { Icon.of(Material.NAME_TAG, "<yellow>" + targetLabel(it), "<gray>$it") }, back = { show() }) { key ->
@@ -130,12 +130,15 @@ class ScrollAdminMenu(e: Enchants, viewer: Player) : Menu(e, viewer, 54, "<dark_
         navigation()
     }
 
-    private fun addFromHand() {
-        val held = viewer.inventory.itemInMainHand
-        if (held.type.isAir) {
-            e.messages.send(viewer, "hand-empty", e.ph())
-            return
-        }
+    /** 아래 가방의 아이템을 Shift+클릭 — 그 아이템(사본)으로 규칙을 더한다. 가방에서 빼지 않는다. */
+    override fun onPlayerInventoryClick(event: InventoryClickEvent): Boolean {
+        if (!event.isShiftClick) return false
+        val held = event.currentItem?.takeIf { !it.type.isAir }?.clone() ?: return false
+        addFrom(held)
+        return true
+    }
+
+    private fun addFrom(held: ItemStack) {
         val options = e.customItems.identifyAll(held).map { it.serialize() } + held.type.name
         if (options.size == 1) {
             editRule(e, viewer, e.scrolls.addRule(options.single())) { show() }

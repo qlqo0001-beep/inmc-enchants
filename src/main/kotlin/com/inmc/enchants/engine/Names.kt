@@ -66,8 +66,4 @@ object Names {
     val FIREWORK_TYPES = listOf("BALL", "BALL_LARGE", "STAR", "BURST", "CREEPER")
     val TUNNEL_MODES = listOf("AUTO", "UP", "DOWN", "STRAIGHT")
     val AOE_TARGETS = listOf("ALL", "MOBS", "PLAYERS", "DAMAGEABLE", "UNDAMAGEABLE")
-    val COLORS = listOf(
-        "WHITE", "SILVER", "GRAY", "BLACK", "RED", "MAROON", "YELLOW", "OLIVE", "LIME", "GREEN",
-        "AQUA", "TEAL", "BLUE", "NAVY", "FUCHSIA", "PURPLE", "ORANGE",
-    )
 }

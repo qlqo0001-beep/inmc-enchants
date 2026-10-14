@@ -11,12 +11,19 @@ import com.inmc.enchants.engine.Names
 import com.inmc.enchants.engine.TargetKind
 import com.inmc.enchants.engine.TargetSpec
 import com.inmc.enchants.engine.Trigger
+import kr.inmc.core.gui.ColorPickMenu
 import kr.inmc.core.gui.Editors
 import kr.inmc.core.gui.Icon
+import kr.inmc.core.gui.ItemInputMenu
+import kr.inmc.core.gui.ParticlePickMenu
+import kr.inmc.core.gui.PotionPickMenu
+import kr.inmc.core.util.Particles
+import kr.inmc.core.util.PotionEffects
+import org.bukkit.Color
 import org.bukkit.Material
-import org.bukkit.Particle
 import org.bukkit.entity.Player
 import org.bukkit.event.inventory.InventoryClickEvent
+import org.bukkit.inventory.ItemStack
 
 /** 효과 줄을 레벨에 되써 넣는 한 자리. 목록·줄 편집이 같이 쓴다. */
 private class Lines(private val ref: LevelRef) {
@@ -149,7 +156,7 @@ class EffectLineMenu(e: Enchants, viewer: Player, private val ref: LevelRef, pri
 
         spec?.args?.take(7)?.forEachIndexed { i, arg ->
             val value = line.args.getOrNull(i)?.takeIf { it.isNotBlank() } ?: arg.default
-            set(19 + i, Icon.of(Material.PAPER, "<yellow>" + arg.label + ": <white>" + value.ifEmpty { "(비어 있음)" }, listOf(
+            set(19 + i, Icon.of(Material.PAPER, "<yellow>" + arg.label + ": <white>" + shown(arg, value).ifEmpty { "(비어 있음)" }, listOf(
                 "<gray>종류: " + arg.type.label + if (arg.optional) " · 선택" else "",
                 "", "<yellow>▶ 클릭: 바꾸기",
             ))) { event -> editArg(event, i, arg, value) }
@@ -260,23 +267,50 @@ class EffectLineMenu(e: Enchants, viewer: Player, private val ref: LevelRef, pri
                 setArg(i, Editors.cycle(event, arg.choices, arg.choices.firstOrNull { it.equals(value, ignoreCase = true) } ?: arg.choices.first()))
                 refresh()
             }
-            ArgType.POTION -> choose(arg.label, Names.POTIONS.map { it.uppercase() }, Material.POTION) { setArg(i, it) }
-            ArgType.PARTICLE -> choose(arg.label, Particle.entries.map { it.name }, Material.FIREWORK_STAR) { setArg(i, it) }
-            ArgType.COLOR -> choose(arg.label, Names.COLORS, Material.RED_DYE) { setArg(i, it) }
+            // 물약·입자는 core 의 고르는 화면(한국어 이름 · 우클릭 미리보기). 적는 값은 전과 같은 대문자 이름(SPEED · FLAME).
+            ArgType.POTION -> PotionPickMenu(e, viewer, arg.label, current = Names.potion(value) ?: value, back = { show() }) { type ->
+                val id = PotionEffects.id(type)
+                // 엔진은 Names.POTIONS 에 있는 효과만 돌린다 — 서버에만 있는 새 효과는 적지 않는다.
+                if (Names.potion(id) == null) e.messages.send(viewer, "admin-bad-line", e.ph().value(id.uppercase())) else setArg(i, id.uppercase())
+                show()
+            }.show()
+            ArgType.PARTICLE -> ParticlePickMenu(e, e.plugin, viewer, arg.label, current = value, back = { show() }) { particle ->
+                setArg(i, particle.name)
+                show()
+            }.show()
+            // 엔진(폭죽)은 색 이름과 `r,g,b` 를 받는다 — 고른 색은 `r,g,b` 로 적는다.
+            ArgType.COLOR -> ColorPickMenu(e, viewer, arg.label, e.prompts, current = colorStart(value), back = { show() }) { hex ->
+                val rgb = hex?.let { ColorPickMenu.parse(it) }
+                if (rgb != null) setArg(i, (rgb shr 16 and 0xFF).toString() + "," + (rgb shr 8 and 0xFF) + "," + (rgb and 0xFF))
+                show()
+            }.show()
             ArgType.ENCHANT -> choose(arg.label, e.registry.ids(), Material.ENCHANTED_BOOK) { setArg(i, it) }
             ArgType.MATERIAL, ArgType.ITEM -> {
-                val held = viewer.inventory.itemInMainHand
-                if (event.isShiftClick && !held.type.isAir) {
-                    setArg(i, held.type.name)
-                    refresh()
+                if (event.isShiftClick) {
+                    ItemInputMenu(e, viewer, arg.label, listOf("<gray>올린 아이템의 재질을 적습니다.</gray>"),
+                        initial = Material.matchMaterial(value)?.takeIf { it.isItem }?.let { ItemStack(it) }, back = { show() }) { item ->
+                        setArg(i, item.type.name)
+                        show()
+                    }.show()
                     return
                 }
-                Editors.promptText(e.prompts, viewer, arg.label, listOf("<gray>재질 이름(예: <white>DIAMOND</white>) 또는 <white>inmc:아이템</white>", "<gray>화면에서 Shift 클릭하면 손에 든 것의 재질"), reopen = { show() }) { setArg(i, it.trim()) }
+                Editors.promptText(e.prompts, viewer, arg.label, listOf("<gray>재질 이름(예: <white>DIAMOND</white>) 또는 <white>inmc:아이템</white>", "<gray>화면에서 Shift+클릭하면 아이템을 올려 그 재질로"), reopen = { show() }) { setArg(i, it.trim()) }
             }
             ArgType.SOUND, ArgType.ENTITY_TYPE, ArgType.TEXT, ArgType.WORD ->
                 Editors.promptText(e.prompts, viewer, arg.label, listOf("<gray>지금: <white>$value"), reopen = { show() }) { setArg(i, it.trim()) }
         }
     }
+
+    /** 값 칸에 보일 글자 — 물약·입자는 한국어 이름(적힌 값은 영어 이름 그대로). 모르는 이름·변수는 적힌 그대로. */
+    private fun shown(arg: ArgSpec, value: String): String = when (arg.type) {
+        ArgType.POTION -> PotionEffects.lang(Names.potion(value) ?: value)
+        ArgType.PARTICLE -> Particles.name(value)
+        else -> value
+    }
+
+    /** 색 고르기의 시작 색 — `r,g,b` 는 그대로(고르는 화면이 읽는다), Bukkit 색 이름(RED · NAVY …)은 그 색의 `#RRGGBB` 로. */
+    private fun colorStart(value: String): String =
+        runCatching { "#%06X".format((Color::class.java.getField(value.trim().uppercase()).get(null) as Color).asRGB()) }.getOrDefault(value)
 
     private fun choose(label: String, options: List<String>, material: Material, apply: (String) -> Unit) {
         PickMenu(e, viewer, "<dark_red>$label</dark_red>", options, icon = { Icon.of(material, "<yellow>$it") }, back = { show() }) {

@@ -224,10 +224,10 @@ class EnchantItems(private val e: Enchants) {
     /** 이 등급의 미확인 부여서를 열면 무엇이든 나오는가 — 아니면 팔거나 떨구지 않는다(열 수 없는 책이 된다). */
     fun drawable(group: Group): Boolean = drawPool(group).isNotEmpty()
 
-        val cap = def.maxLevel.coerceAtLeast(1).let { if (def.settings.drawMaxLevel > 0) minOf(it, def.settings.drawMaxLevel) else it }
-        return 1 + random.nextInt(cap)
     /** 뽑기에서 나오는 레벨 — 1 부터 최대(또는 `draw-max-level`)까지 고르게. */
     fun drawLevel(def: EnchantDefinition): Int {
+        val cap = def.maxLevel.coerceAtLeast(1).let { if (def.settings.drawMaxLevel > 0) minOf(it, def.settings.drawMaxLevel) else it }
+        return 1 + random.nextInt(cap)
     }
 
     /** 등급 가중치(`sources.group-weights`)로 등급 하나. 열어도 나올 것이 없는 등급([drawable])은 빼고 고른다. */

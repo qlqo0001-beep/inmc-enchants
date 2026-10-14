@@ -9,15 +9,20 @@ import com.inmc.enchants.enchant.Group
 import com.inmc.enchants.enchant.percentRange
 import com.inmc.enchants.engine.Condition
 import com.inmc.enchants.engine.Trigger
+import com.inmc.enchants.item.ScrollEnchant
 import com.inmc.enchants.verify.Verifier
+import kr.inmc.core.gui.ColorPickMenu
 import kr.inmc.core.gui.ConfirmMenu
 import kr.inmc.core.gui.Editors
 import kr.inmc.core.gui.Icon
+import kr.inmc.core.gui.ItemInputMenu
 import kr.inmc.core.gui.Paging
 import kr.inmc.core.util.Numbers
+import kr.inmc.core.util.Text
 import org.bukkit.Material
 import org.bukkit.entity.Player
 import org.bukkit.event.inventory.InventoryClickEvent
+import org.bukkit.inventory.ItemStack
 
 /** 관리 화면의 입구. */
 class AdminMenu(e: Enchants, viewer: Player) : Menu(e, viewer, 54, "<dark_red>인첸트 관리</dark_red>") {
@@ -58,6 +63,12 @@ class AdminMenu(e: Enchants, viewer: Player) : Menu(e, viewer, 54, "<dark_red>�
         set(26, Icon.of(Material.PAPER, "<yellow>강화 스크롤", "<gray>금지 목록(어떤 아이템에 어떤 인첸트를", "<gray>스크롤로 붙이면 안 되는지)·바닐라 최대 레벨·지급", "", "<yellow>▶ 클릭")) {
             ScrollAdminMenu(e, viewer).show()
         }
+        set(28, Icon.of(Material.BARRIER, "<yellow>금지 인첸트", "<gray>" + e.disabled.all().size + "개 · 서버에서 새로 나오지 않게 할 인첸트",
+            "<gray>바닐라·커스텀 둘 다. 부여대·모루·주민·전리품·",
+            "<gray>부여서·강화 스크롤로 새로 붙지 않습니다.",
+            "<gray>이미 가진 아이템은 그대로 둡니다.", "", "<yellow>▶ 클릭")) {
+            editDisabled(e, viewer) { AdminMenu(e, viewer).show() }
+        }
         set(36, Icon.of(Material.COMPASS, "<gold>어드민 메뉴로", "<gray>각 플러그인 설정 허브로 돌아갑니다.", "", "<yellow>▶ 클릭")) {
             viewer.performCommand("메뉴 어드민")
         }
@@ -67,6 +78,26 @@ class AdminMenu(e: Enchants, viewer: Player) : Menu(e, viewer, 54, "<dark_red>�
         fillEmpty(Icon.FILLER)
         navigation()
     }
+}
+
+/**
+ * 서버 금지 인첸트(`disabled-enchants.yml`)를 켜고 끈다 — 바닐라 먼저, 그다음 우리 인첸트(CMI `/cmi disableenchant` 의 화면 대체, 2026-10-10).
+ * 누를 때마다 바로 저장한다. 명령 `/인첸트 금지 <id>` 와 같은 일이다.
+ */
+internal fun editDisabled(e: Enchants, viewer: Player, back: () -> Unit) {
+    val options = e.scrolls.vanilla().map(ScrollEnchant::Vanilla) + e.registry.all().map(ScrollEnchant::Custom)
+    PickMenu(
+        e, viewer, "<dark_red>금지 인첸트</dark_red>", options,
+        icon = { target ->
+            when (target) {
+                is ScrollEnchant.Custom -> enchantIcon(e, target.def)
+                is ScrollEnchant.Vanilla -> Icon.of(Material.ENCHANTED_BOOK, "<aqua>" + e.scrolls.label(target), "<gray>바닐라 인첸트 <dark_gray>" + target.id)
+            }
+        },
+        multi = true,
+        selected = { options.filter { it.id in e.disabled.all() }.toSet() },
+        back = back,
+    ) { target -> e.disabled.toggle(target.id) }.show()
 }
 
 /** 새 인첸트: id 를 묻고 빈 정의를 만든 뒤 편집 화면을 연다. */
@@ -506,8 +537,17 @@ class GroupEditMenu(e: Enchants, viewer: Player, private val id: String) : Menu(
         set(10, Icon.of(Material.NAME_TAG, "<yellow>이름: " + g.color + g.name, "", "<yellow>▶ 클릭")) {
             Editors.promptText(e.prompts, viewer, "등급 이름", emptyList(), reopen = { show() }) { input -> mutate { it.copy(name = input.trim()) } }
         }
-        set(11, Icon.of(Material.RED_DYE, "<yellow>색: " + g.color + "견본", "<gray>& 색코드나 <white><#ff8800></white> 같은 MiniMessage", "", "<yellow>▶ 클릭")) {
-            Editors.promptText(e.prompts, viewer, "등급 색", listOf("<gray>예: <white>&6 <gray>또는 <white><gradient:#ff0:#f80>"), reopen = { show() }) { input -> mutate { it.copy(color = input.trim()) } }
+        set(11, Icon.of(Material.RED_DYE, "<yellow>색: " + g.color + "견본", "<gray>고른 색은 <white>\\<#RRGGBB></white> 로 적힙니다.", "",
+            "<yellow>▶ 클릭: 색 고르기", "<yellow>▶ Shift+클릭: 직접 적기(& 색코드·그라데이션)")) { event ->
+            if (event.isShiftClick) {
+                Editors.promptText(e.prompts, viewer, "등급 색", listOf("<gray>예: <white>&6 <gray>또는 <white><gradient:#ff0:#f80>"), reopen = { show() }) { input -> mutate { it.copy(color = input.trim()) } }
+                return@set
+            }
+            // 지금 색이 & 코드면 MiniMessage 이름(<gold>)으로 바꿔 넘긴다 — 고르는 화면이 그 색에서 시작한다. 그라데이션은 흰색에서.
+            ColorPickMenu(e, viewer, "등급 색", e.prompts, current = Text.legacyToMiniMessage(g.color), back = { show() }) { hex ->
+                if (hex != null) mutate { it.copy(color = "<$hex>") }
+                show()
+            }.show()
         }
         set(12, Editors.intIcon(Material.LADDER, "<yellow>순서(귀할수록 큼)", g.order)) { ev -> nudge(ev, "순서", g.order, 0, 1000) { v, x -> x.copy(order = v) } }
         set(13, Editors.intIcon(Material.PRISMARINE_CRYSTALS, "<yellow>확장기 칸", g.slotIncreaser)) { ev -> nudge(ev, "확장기 칸", g.slotIncreaser, 1, 20) { v, x -> x.copy(slotIncreaser = v) } }
@@ -525,11 +565,13 @@ class GroupEditMenu(e: Enchants, viewer: Player, private val id: String) : Menu(
             "<gray>exp:400 · level:10 · money:500 · souls:20 · item:DIAMOND:5", "", "<yellow>▶ 클릭")) {
             Editors.promptText(e.prompts, viewer, "인챈터 가격", emptyList(), reopen = { show() }) { input -> mutate { it.copy(enchanterPrice = input.trim()) } }
         }
-        set(23, Icon.of(g.bookMaterial?.let { Material.matchMaterial(it) } ?: Material.ENCHANTED_BOOK, "<yellow>부여서 재질", "<gray>손에 든 아이템의 재질로 바꿉니다.", "", "<yellow>▶ 클릭")) {
-            val held = viewer.inventory.itemInMainHand
-            if (held.type.isAir) return@set
-            mutate { it.copy(bookMaterial = held.type.name) }
-            refresh()
+        val book = g.bookMaterial?.let { Material.matchMaterial(it) } ?: Material.ENCHANTED_BOOK
+        set(23, Icon.of(book, "<yellow>부여서 재질", "<gray>올린 아이템의 재질로 바꿉니다.", "", "<yellow>▶ 클릭: 아이템 올리기")) {
+            ItemInputMenu(e, viewer, "부여서 재질 - $id", listOf("<gray>이 등급 부여서의 재질(재질만 씁니다).</gray>"),
+                initial = book.takeIf { it.isItem }?.let { ItemStack(it) }, back = { show() }) { item ->
+                mutate { it.copy(bookMaterial = item.type.name) }
+                show()
+            }.show()
         }
         fillEmpty(Icon.FILLER)
         navigation()
