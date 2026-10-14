@@ -2,6 +2,10 @@ package com.inmc.enchants
 
 import com.inmc.enchants.command.EnchantsCommand
 import com.inmc.enchants.config.DisabledEnchants
+import com.mojang.brigadier.CommandDispatcher
+import com.mojang.brigadier.arguments.StringArgumentType
+import com.mojang.brigadier.builder.LiteralArgumentBuilder
+import com.mojang.brigadier.builder.RequiredArgumentBuilder
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
@@ -42,5 +46,28 @@ class VanillaRulesTest {
         assertEquals("minecraft:sweeping_edge", DisabledEnchants.cmiId("SWEEPING"))
         assertEquals("foo:bar", DisabledEnchants.cmiId("foo:bar"))
         assertNull(DisabledEnchants.cmiId("   "))
+    }
+
+    @Test
+    fun `인자 원문은 루트 리터럴과 이름이 같아도 인자 노드에서 읽는다`() {
+        // 2026-10-15 검증기 "관리자 부여" 가 잡은 것 — 루트 `인첸트` 와 인자 `인첸트` 가 같은 이름이라 이름으로만 찾으면 루트가 먼저 잡혀
+        // `/인첸트 부여 minecraft:sharpness 2` 의 원문이 "인첸트" 로 읽혔다("'인첸트' 라는 인첸트가 없습니다").
+        val dispatcher = CommandDispatcher<Unit>()
+        var seen = ""
+        dispatcher.register(
+            LiteralArgumentBuilder.literal<Unit>("인첸트").then(
+                LiteralArgumentBuilder.literal<Unit>("부여").then(
+                    RequiredArgumentBuilder.argument<Unit, String>("인첸트", StringArgumentType.greedyString())
+                        .executes { ctx -> seen = EnchantsCommand.rawArgument(ctx, "인첸트"); 1 },
+                ),
+            ),
+        )
+        dispatcher.execute("인첸트 부여 Minecraft:Sharpness", Unit)
+        assertEquals("minecraft:sharpness", seen, "루트 '인첸트' 가 아니라 인자의 글자(소문자)")
+        dispatcher.execute("인첸트 부여 drain", Unit)
+        assertEquals("drain", seen)
+        dispatcher.register(LiteralArgumentBuilder.literal<Unit>("인첸트").then(LiteralArgumentBuilder.literal<Unit>("관리").executes { ctx -> seen = EnchantsCommand.rawArgument(ctx, "인첸트"); 1 }))
+        dispatcher.execute("인첸트 관리", Unit)
+        assertEquals("", seen, "인자가 없으면 빈 글 — 리터럴을 인자로 읽지 않는다")
     }
 }

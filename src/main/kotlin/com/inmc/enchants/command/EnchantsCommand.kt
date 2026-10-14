@@ -13,6 +13,7 @@ import com.mojang.brigadier.arguments.StringArgumentType
 import com.mojang.brigadier.builder.LiteralArgumentBuilder
 import com.mojang.brigadier.context.CommandContext
 import com.mojang.brigadier.suggestion.SuggestionProvider
+import com.mojang.brigadier.tree.ArgumentCommandNode
 import io.papermc.paper.command.brigadier.CommandSourceStack
 import io.papermc.paper.command.brigadier.Commands
 import io.papermc.paper.command.brigadier.argument.ArgumentTypes
@@ -181,9 +182,8 @@ class EnchantsCommand(private val e: Enchants, private val plugin: EnchantsPlugi
         return 1
     }
 
-    /** 인자의 입력 글자 그대로(소문자). 열쇠 인자는 이름공간을 채워 넣으므로 원문을 다시 읽는다. */
-    private fun raw(ctx: CommandContext<CommandSourceStack>, name: String): String =
-        ctx.nodes.firstOrNull { it.node.name == name }?.range?.get(ctx.input)?.trim()?.lowercase().orEmpty()
+    /** 인자의 입력 글자 그대로(소문자). 열쇠 인자는 이름공간을 채워 넣으므로 원문을 다시 읽는다 — [rawArgument]. */
+    private fun raw(ctx: CommandContext<CommandSourceStack>, name: String): String = rawArgument(ctx, name)
 
     /**
      * 붙이기·떼기. 성공률·칸·서버 금지는 보지 않는다(관리자의 명시적인 명령). 우리 인첸트는 정의의 최대 레벨로 자르고, 바닐라는 [vanillaCap] 을
@@ -294,6 +294,14 @@ class EnchantsCommand(private val e: Enchants, private val plugin: EnchantsPlugi
     }
 
     companion object {
+        /**
+         * [name] 인자에 사람이 친 글자 그대로(소문자). **인자 노드만** 본다 — 루트 리터럴도 `인첸트` 라 이름으로만 찾으면 루트가
+         * 먼저 잡혀 원문이 "인첸트" 가 됐다(2026-10-15, 검증기 "관리자 부여" 가 잡음: `/인첸트 부여 minecraft:sharpness 2` 가
+         * "'인첸트' 라는 인첸트가 없습니다"). 인자가 없으면 빈 글.
+         */
+        internal fun rawArgument(ctx: CommandContext<*>, name: String): String =
+            ctx.nodes.firstOrNull { it.node is ArgumentCommandNode<*, *> && it.node.name == name }?.range?.get(ctx.input)?.trim()?.lowercase().orEmpty()
+
         const val USE = "inmcenchant.use"
         const val ADMIN = "inmcenchant.admin"
         /** `/인첸트 부여·해제` — 손에 든 아이템(관리 권한의 자식). */
